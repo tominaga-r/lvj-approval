@@ -1,0 +1,64 @@
+/* styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* アプリ固有の調整 */
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prose (markdown) max width inside cards */
+.prose {
+  max-width: 100%;
+}
+
+/* Header 固定領域用の padding top（tailwind の pt-20 と合わせる）*/
+main.pt-20 {
+  padding-top: 5rem; /* 80px, Header の高さに合わせる */
+}
+
+/* Card style for logs */
+.card {
+  @apply bg-white border rounded-lg shadow-sm p-4;
+}
+
+.input {
+  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm
+    focus:outline-none focus:ring-2 focus:ring-blue-200;
+}
+
+.label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.help {
+  @apply mt-1 text-xs text-gray-500;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm
+    border border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply bg-white border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+
+.btn-ghost {
+  @apply bg-transparent border-transparent text-gray-700 hover:bg-gray-100;
+}
+
+.chip {
+  @apply inline-flex items-center rounded-full bg-gray-100 border border-gray-200 px-2.5 py-1 text-xs text-gray-700;
+}
+

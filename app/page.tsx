@@ -1,11 +1,11 @@
 // app/page.tsx
-import { Suspense } from 'react'
-import HomeClient from './HomeClient'
+import { redirect } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabaseServer'
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="p-4">読み込み中...</div>}>
-      <HomeClient />
-    </Suspense>
-  )
+export default async function Home() {
+  const supabase = await createSupabaseServerClient()
+  const { data } = await supabase.auth.getUser()
+
+  if (data.user) redirect('/dashboard')
+  redirect('/login')
 }

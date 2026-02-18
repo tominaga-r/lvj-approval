@@ -5,6 +5,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useToast } from '@/app/components/ui/ToastProvider'
 import { createDraftRequest } from './actions'
+import Link from 'next/link'
 
 type RequestType = { id: number; name: string }
 
@@ -119,9 +120,9 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
           {pending ? '作成中...' : '下書きを作成'}
         </button>
 
-        <a className="btn btn-secondary" href="/requests">
+        <Link className="btn btn-secondary" href="/requests">
           キャンセル
-        </a>
+        </Link>
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-//page.tsx
+// app/requests/[id]/page.tsx
 
 import Link from 'next/link'
 import { redirect } from 'next/navigation'

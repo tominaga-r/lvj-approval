@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // ここに「アクセスさせたくないホスト名」を列挙
-const PROD_HOST = 'my-organize-app.vercel.app'
+const PROD_HOST = ''
 
 export function middleware(req: NextRequest) {
   const host = req.headers.get('host') ?? ''

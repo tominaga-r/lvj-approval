@@ -79,7 +79,7 @@ export function Header() {
     ]
     if (isApprover) links.push({ href: '/approvals', label: '承認待ち' })
     if (isAdmin) links.push({ href: '/admin', label: '管理' })
-    links.push({ href: '/settings', label: '設定' }) // 既存を活かす
+    links.push({ href: '/settings', label: '設定' }) 
     return links
   }, [isApprover, isAdmin])
 
@@ -94,7 +94,7 @@ export function Header() {
         {/* 左：ロゴ＋ナビ */}
         <div className="flex gap-4 items-center">
           <Link href="/dashboard" className="font-bold hover:underline">
-            LVJ Approval
+            Approval
           </Link>
 
           {authReady && userId && (
@@ -126,7 +126,7 @@ export function Header() {
 
           {authReady && !userId && (
             <Link href="/login" className="text-blue-600 hover:underline">
-              ログイン / 登録
+              ログイン
             </Link>
           )}
 

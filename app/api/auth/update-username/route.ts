@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '認証が必要です' }, { status: 401 })
   }
 
-  // ★ 追加: メール登録済みユーザーだけ許可
+  // メール登録済みユーザーだけ許可
   const email = user.email ?? ''
   const hasRealEmail = !!email && !email.endsWith('@local.internal')
 

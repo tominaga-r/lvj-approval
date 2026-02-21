@@ -47,17 +47,12 @@ export async function POST(req: Request) {
   if (!newEmail) {
     return NextResponse.json({ error: 'newEmail is required' }, { status: 400 })
   }
-
-  // 研修用のダミーは禁止（残っててもOKだが、ここで締める）
-  if (newEmail.endsWith('@local.internal')) {
-    return NextResponse.json({ error: 'invalid email' }, { status: 400 })
-  }
-
+  
   const { error } = await supabase.auth.updateUser({ email: newEmail })
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  // Supabaseの仕様上、確認メールが飛ぶ（設定による）
+  // Supabaseの仕様上、確認メールが飛ぶ（設定）
   return NextResponse.json({ ok: true })
 }

@@ -26,5 +26,5 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Audit (fail on high)
+      - name: Audit 
         run: npm audit

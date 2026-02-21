@@ -26,7 +26,8 @@ export default function LoginPage() {
       })
       if (error) return alert('ログイン失敗: ' + error.message)
 
-      router.push('/dashboard')
+      // before: router.push('/dashboard')
+      window.location.href = '/dashboard'
     } finally {
       setLoading(false)
     }

@@ -1,12 +1,12 @@
 // app/requests/page.tsx
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabaseServer'
+import { requireProfile } from '@/lib/authz'
+
+export const dynamic = 'force-dynamic'
 
 export default async function RequestsPage() {
-  const supabase = await createSupabaseServerClient()
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) redirect('/login')
+  const { supabase, profile } = await requireProfile()
+  const canCreate = profile.role === 'REQUESTER' || profile.role === 'ADMIN'
 
   const { data: rows, error } = await supabase
     .from('requests')
@@ -18,19 +18,30 @@ export default async function RequestsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="max-w-5xl mx-auto p-6 space-y-4">
+      <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">申請一覧</h1>
-        <Link className="btn btn-primary" href="/requests/new">新規作成</Link>
+        {canCreate && (
+          <Link className="btn btn-secondary" href="/requests/new">
+            新規申請
+          </Link>
+        )}
+      </div>
+
+      <div className="text-sm text-gray-600">
+        あなたの部署: {profile.department} / ロール: {profile.role}
       </div>
 
       <div className="space-y-2">
-        {rows?.map(r => (
+        {(rows ?? []).map((r) => (
           <Link key={r.id} href={`/requests/${r.id}`} className="block card hover:bg-gray-50">
             <div className="font-medium">{r.title}</div>
-            <div className="text-xs text-gray-500">{r.status} / {new Date(r.created_at).toLocaleString()}</div>
+            <div className="text-xs text-gray-500">
+              {r.status} / {new Date(r.created_at).toLocaleString('ja-JP')}
+            </div>
           </Link>
         ))}
+        {(rows ?? []).length === 0 && <div className="text-sm text-gray-600">申請がありません。</div>}
       </div>
     </div>
   )

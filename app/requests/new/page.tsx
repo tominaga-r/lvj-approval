@@ -1,17 +1,12 @@
 // app/requests/new/page.tsx
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { NewRequestForm } from './request-form'
+import { requireRole } from '@/lib/authz'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NewRequestPage() {
-  const supabase = await createSupabaseServerClient()
+  const { supabase } = await requireRole(['REQUESTER', 'ADMIN'])
 
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) redirect('/login')
-
-  // 申請種別マスタ取得（全員select可）
   const { data: types, error } = await supabase
     .from('request_types')
     .select('id, name')

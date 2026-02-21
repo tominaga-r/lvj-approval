@@ -109,7 +109,7 @@ export function RequestActionsPanel(props: {
               onClick={() =>
                 setDialog({
                   title: '承認しますか？',
-                  description: '承認すると APPROVED になります。',
+                  description: '承認すると APPROVED状態 になります。',
                   run: () => approveRequest(requestId, comment),
                 })
               }
@@ -123,7 +123,7 @@ export function RequestActionsPanel(props: {
               onClick={() =>
                 setDialog({
                   title: '却下しますか？',
-                  description: '却下すると REJECTED になります。',
+                  description: '却下すると REJECTED状態 になります。',
                   destructive: true,
                   run: () => rejectRequest(requestId, comment),
                 })

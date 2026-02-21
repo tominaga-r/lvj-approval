@@ -30,7 +30,6 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
   const updateEmail = () => {
     const e = newEmail.trim().toLowerCase()
     if (!e) return toast({ message: '新しいメールアドレスを入力してください' })
-    if (e.endsWith('@local.internal')) return toast({ message: 'そのメールアドレスは使用できません' })
 
     startTransition(async () => {
       try {
@@ -98,9 +97,7 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
         <button className="btn btn-primary" onClick={updateEmail} disabled={pending}>
           {pending ? '処理中...' : '変更メールを送信'}
         </button>
-        <p className="text-xs text-gray-500">
-          変更は確認メールのリンクをクリックして確定します。
-        </p>
+        <p className="text-xs text-gray-500">変更は確認メールのリンクをクリックして確定します。</p>
       </div>
 
       <div className="card space-y-3">

@@ -1,9 +1,7 @@
 // app/requests/new/actions.ts
-
 'use server'
-
 import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabaseServer'
+import { requireRole } from '@/lib/authz'
 
 type CreateRequestInput = {
   typeId: number
@@ -14,20 +12,11 @@ type CreateRequestInput = {
 }
 
 export async function createDraftRequest(input: CreateRequestInput) {
-  const supabase = await createSupabaseServerClient()
+  const { supabase, user, profile } = await requireRole(['REQUESTER', 'ADMIN'])
 
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) redirect('/login')
-
-  // 自分のdepartmentを取得（RLSのinsert条件に合わせる）
-  const { data: me, error: meErr } = await supabase
-    .from('profiles')
-    .select('department')
-    .eq('id', auth.user.id)
-    .single()
-
-  if (meErr || !me?.department) {
-    throw new Error(meErr?.message ?? 'profiles.department not found')
+  // departmentが無いとINSERT条件に合わないので早めに落とす
+  if (!profile.department) {
+    throw new Error('profiles.department not found')
   }
 
   const amountNum =
@@ -36,14 +25,14 @@ export async function createDraftRequest(input: CreateRequestInput) {
     throw new Error('金額が数値ではありません')
   }
 
-  const insertPayload: any = {
+  const insertPayload = {
     type_id: input.typeId,
     title: input.title.trim(),
     description: input.description.trim(),
     amount: amountNum,
     needed_by: input.neededBy && input.neededBy !== '' ? input.neededBy : null,
-    requester_id: auth.user.id,
-    department: me.department,
+    requester_id: user.id,
+    department: profile.department,
     // status はテーブルdefaultで DRAFT
   }
 

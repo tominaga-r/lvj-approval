@@ -30,13 +30,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# 例外（app/api/logs は無視しない）
-!app/api/logs/
-!app/api/logs/**
-
 # local env files
 .env*.local
 .env
+
+# e2e
+.env.e2e.local
+/test-results/
+/playwright-report/
+/tests/e2e/storageState/*.json
 
 # vercel
 .vercel

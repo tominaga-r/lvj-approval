@@ -51,18 +51,18 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
   }, [users, editUser])
 
   const run = (fn: () => Promise<void>) => {
-  startTransition(async () => {
-    try {
-      await fn()
-      toast({ message: '更新しました' })
-      router.refresh() // ★これでadmin一覧が即時反映される
-    } catch (e: any) {
-      toast({ message: `エラー: ${e?.message ?? e}` })
-    } finally {
-      setDialog(null)
-    }
-  })
-}
+    startTransition(async () => {
+      try {
+        await fn()
+        toast({ message: '更新しました' })
+        router.refresh() 
+      } catch (e: any) {
+        toast({ message: `エラー: ${e?.message ?? e}` })
+      } finally {
+        setDialog(null)
+      }
+    })
+  }
 
   return (
     <div className="space-y-8">
@@ -71,13 +71,21 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
         <div className="font-semibold">申請種別マスタ（request_types）</div>
 
         <div className="flex gap-2 flex-wrap">
-          <input
-            className="input"
-            placeholder="新しい種別名（例：店舗備品購入申請）"
-            value={newTypeName}
-            onChange={(e) => setNewTypeName(e.target.value)}
-            disabled={pending}
-          />
+          <div className="flex-1 min-w-[240px]">
+            <label htmlFor="admin-new-type-name" className="sr-only">
+              新しい種別名
+            </label>
+            <input
+              id="admin-new-type-name"
+              name="newTypeName"
+              className="input w-full"
+              placeholder="新しい種別名（例：店舗備品購入申請）"
+              value={newTypeName}
+              onChange={(e) => setNewTypeName(e.target.value)}
+              disabled={pending}
+            />
+          </div>
+
           <button
             className="btn btn-primary"
             disabled={pending || newTypeName.trim().length === 0}
@@ -95,17 +103,26 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
         <div className="space-y-2">
           {requestTypes.map((t) => {
             const v = rename[t.id] ?? t.name
+            const renameId = `admin-rename-type-${t.id}`
             return (
               <div key={t.id} className="rounded border p-3 bg-white space-y-2">
                 <div className="text-xs text-gray-500">id: {t.id}</div>
 
                 <div className="flex gap-2 flex-wrap items-center">
-                  <input
-                    className="input"
-                    value={v}
-                    onChange={(e) => setRename((p) => ({ ...p, [t.id]: e.target.value }))}
-                    disabled={pending}
-                  />
+                  <div className="flex-1 min-w-[240px]">
+                    <label htmlFor={renameId} className="sr-only">
+                      種別名（id: {t.id}）
+                    </label>
+                    <input
+                      id={renameId}
+                      name={`renameType-${t.id}`}
+                      className="input w-full"
+                      value={v}
+                      onChange={(e) => setRename((p) => ({ ...p, [t.id]: e.target.value }))}
+                      disabled={pending}
+                    />
+                  </div>
+
                   <button
                     className="btn btn-secondary"
                     disabled={pending || v.trim().length === 0 || v.trim() === t.name}
@@ -117,14 +134,14 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
                   >
                     名前変更
                   </button>
+
                   <button
                     className="btn btn-secondary"
                     disabled={pending}
                     onClick={() =>
                       setDialog({
                         title: 'この種別を削除しますか？',
-                        description:
-                          '既に申請で使用されている種別は削除できない場合があります。',
+                        description: '既に申請で使用されている種別は削除できない場合があります。',
                         destructive: true,
                         run: () => deleteRequestType(t.id),
                       })
@@ -151,6 +168,9 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
             const draft = usersWithDraft[u.id]
             const changed = draft.role !== u.role || draft.department !== u.department
 
+            const roleId = `admin-user-role-${u.id}`
+            const deptId = `admin-user-dept-${u.id}`
+
             return (
               <div key={u.id} className="rounded border p-3 bg-white space-y-2">
                 <div className="text-sm font-medium">{u.name}</div>
@@ -158,8 +178,12 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
                   <div>
-                    <label className="label">Role</label>
+                    <label htmlFor={roleId} className="label">
+                      Role
+                    </label>
                     <select
+                      id={roleId}
+                      name={`role-${u.id}`}
                       className="input"
                       value={draft.role}
                       onChange={(e) =>
@@ -177,8 +201,12 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
                   </div>
 
                   <div>
-                    <label className="label">Department</label>
+                    <label htmlFor={deptId} className="label">
+                      Department
+                    </label>
                     <input
+                      id={deptId}
+                      name={`department-${u.id}`}
                       className="input"
                       value={draft.department}
                       onChange={(e) =>

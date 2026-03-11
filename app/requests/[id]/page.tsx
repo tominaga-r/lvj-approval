@@ -7,11 +7,12 @@ import EditDraftForm from './EditDraftForm'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: { id: string } }
+type Props = { params: Promise<{ id: string }> }
 
 export default async function RequestDetailPage({ params }: Props) {
-  const requestId = params.id
+  const { id: requestId } = await params
   const { supabase, profile: me } = await requireProfile()
+
 
   // 申請（RLSで範囲が制限される）
   const { data: reqRow, error: reqErr } = await supabase

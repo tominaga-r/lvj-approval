@@ -87,13 +87,24 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
 
       <div className="card space-y-3">
         <div className="font-medium">メールアドレス変更</div>
-        <input
-          className="input"
-          value={newEmail}
-          onChange={(e) => setNewEmail(e.target.value)}
-          placeholder="new-email@example.com"
-          disabled={pending}
-        />
+
+        <div>
+          <label htmlFor="settings-new-email" className="label">
+            新しいメールアドレス
+          </label>
+          <input
+            id="settings-new-email"
+            name="newEmail"
+            type="email"
+            autoComplete="email"
+            className="input"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            placeholder="new-email@example.com"
+            disabled={pending}
+          />
+        </div>
+
         <button className="btn btn-primary" onClick={updateEmail} disabled={pending}>
           {pending ? '処理中...' : '変更メールを送信'}
         </button>
@@ -102,14 +113,24 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
 
       <div className="card space-y-3">
         <div className="font-medium">パスワード変更</div>
-        <input
-          className="input"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="8文字以上"
-          disabled={pending}
-        />
+
+        <div>
+          <label htmlFor="settings-new-password" className="label">
+            新しいパスワード
+          </label>
+          <input
+            id="settings-new-password"
+            name="newPassword"
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="8文字以上"
+            disabled={pending}
+          />
+        </div>
+
         <button className="btn btn-primary" onClick={updatePassword} disabled={pending}>
           {pending ? '処理中...' : 'パスワード更新'}
         </button>

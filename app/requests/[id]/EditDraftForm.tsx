@@ -1,6 +1,5 @@
 // app/requests/[id]/EditDraftForm.tsx
 'use client'
-
 import { useMemo, useState, useTransition } from 'react'
 import { useToast } from '@/app/components/ui/ToastProvider'
 import { updateDraftRequest } from './actions'
@@ -62,8 +61,12 @@ export default function EditDraftForm(props: {
       <div className="font-medium">下書きの編集（DRAFTのみ）</div>
 
       <div>
-        <label className="label">申請種別</label>
+        <label htmlFor="edit-draft-type" className="label">
+          申請種別
+        </label>
         <select
+          id="edit-draft-type"
+          name="typeId"
           className="input"
           value={typeId}
           onChange={(e) => setTypeId(Number(e.target.value))}
@@ -78,8 +81,12 @@ export default function EditDraftForm(props: {
       </div>
 
       <div>
-        <label className="label">タイトル（必須）</label>
+        <label htmlFor="edit-draft-title" className="label">
+          タイトル（必須）
+        </label>
         <input
+          id="edit-draft-title"
+          name="title"
           className="input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -88,8 +95,12 @@ export default function EditDraftForm(props: {
       </div>
 
       <div>
-        <label className="label">内容（必須）</label>
+        <label htmlFor="edit-draft-description" className="label">
+          内容（必須）
+        </label>
         <textarea
+          id="edit-draft-description"
+          name="description"
           className="input"
           style={{ minHeight: 120 }}
           value={description}
@@ -100,8 +111,12 @@ export default function EditDraftForm(props: {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="label">金額（任意）</label>
+          <label htmlFor="edit-draft-amount" className="label">
+            金額（任意）
+          </label>
           <input
+            id="edit-draft-amount"
+            name="amount"
             className="input"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -110,8 +125,12 @@ export default function EditDraftForm(props: {
           />
         </div>
         <div>
-          <label className="label">希望日（任意）</label>
+          <label htmlFor="edit-draft-neededBy" className="label">
+            希望日（任意）
+          </label>
           <input
+            id="edit-draft-neededBy"
+            name="neededBy"
             className="input"
             type="date"
             value={neededBy}

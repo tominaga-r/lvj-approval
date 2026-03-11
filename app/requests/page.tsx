@@ -1,12 +1,13 @@
 // app/requests/page.tsx
 import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
+import { canCreateRequest } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function RequestsPage() {
   const { supabase, profile } = await requireProfile()
-  const canCreate = profile.role === 'REQUESTER' || profile.role === 'ADMIN'
+  const canCreate = canCreateRequest(profile.role)
 
   const { data: rows, error } = await supabase
     .from('requests')

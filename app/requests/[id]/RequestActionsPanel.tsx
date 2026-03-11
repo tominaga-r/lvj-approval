@@ -1,4 +1,4 @@
-//app/requests/[id]/RequestActionsPanel.tsx
+// app/requests/[id]/RequestActionsPanel.tsx
 
 'use client'
 
@@ -6,9 +6,7 @@ import { useMemo, useState, useTransition } from 'react'
 import { ConfirmDialog } from '@/app/components/ui/ConfirmDialog'
 import { useToast } from '@/app/components/ui/ToastProvider'
 import { approveRequest, cancelRequest, rejectRequest, submitRequest } from './actions'
-
-type Role = 'REQUESTER' | 'APPROVER' | 'ADMIN'
-type Status = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+import { canCancel, canDecide, canSubmit, type Role, type Status } from '@/lib/permissions'
 
 export function RequestActionsPanel(props: {
   requestId: string
@@ -28,9 +26,10 @@ export function RequestActionsPanel(props: {
     run: () => Promise<void>
   }>(null)
 
-  const canSubmit = isOwner && status === 'DRAFT'
-  const canCancel = isOwner && (status === 'DRAFT' || status === 'SUBMITTED')
-  const canDecide = (myRole === 'APPROVER' || myRole === 'ADMIN') && status === 'SUBMITTED'
+  // 条件を permissions.ts に寄せる
+  const canSubmitAction = canSubmit(isOwner, status)
+  const canCancelAction = canCancel(isOwner, status)
+  const canDecideAction = canDecide(myRole, status)
 
   const hint = useMemo(() => {
     if (status === 'DRAFT') return '下書き：申請者は編集・提出ができます。'
@@ -57,8 +56,12 @@ export function RequestActionsPanel(props: {
       <div className="text-sm text-gray-600">{hint}</div>
 
       <div>
-        <label className="label">コメント（任意）</label>
+        <label htmlFor="request-action-comment" className="label">
+          コメント（任意）
+        </label>
         <input
+          id="request-action-comment"
+          name="comment"
           className="input"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -68,7 +71,7 @@ export function RequestActionsPanel(props: {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {canSubmit && (
+        {canSubmitAction && (
           <button
             className="btn btn-primary"
             disabled={pending}
@@ -84,7 +87,7 @@ export function RequestActionsPanel(props: {
           </button>
         )}
 
-        {canCancel && (
+        {canCancelAction && (
           <button
             className="btn btn-secondary"
             disabled={pending}
@@ -101,7 +104,7 @@ export function RequestActionsPanel(props: {
           </button>
         )}
 
-        {canDecide && (
+        {canDecideAction && (
           <>
             <button
               className="btn btn-primary"
@@ -109,7 +112,7 @@ export function RequestActionsPanel(props: {
               onClick={() =>
                 setDialog({
                   title: '承認しますか？',
-                  description: '承認すると APPROVED状態 になります。',
+                  description: '承認すると APPROVED になります。',
                   run: () => approveRequest(requestId, comment),
                 })
               }
@@ -123,7 +126,7 @@ export function RequestActionsPanel(props: {
               onClick={() =>
                 setDialog({
                   title: '却下しますか？',
-                  description: '却下すると REJECTED状態 になります。',
+                  description: '却下すると REJECTED になります。',
                   destructive: true,
                   run: () => rejectRequest(requestId, comment),
                 })
@@ -143,7 +146,7 @@ export function RequestActionsPanel(props: {
         confirmLabel={pending ? '処理中...' : '実行'}
         cancelLabel="キャンセル"
         onClose={() => !pending && setDialog(null)}
-                onConfirm={() => {
+        onConfirm={() => {
           if (!dialog) return
           runWithToast(dialog.run)
         }}

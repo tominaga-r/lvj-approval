@@ -1,6 +1,7 @@
 // app/dashboard/page.tsx
 import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
+import { canCreateRequest } from '@/lib/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,7 @@ export default async function DashboardPage() {
 
   const isAdmin = profile.role === 'ADMIN'
   const isApprover = profile.role === 'APPROVER'
-  const canCreate = profile.role === 'REQUESTER' || isAdmin
+  const canCreate = canCreateRequest(profile.role)
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-4">

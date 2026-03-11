@@ -1,4 +1,5 @@
 // app/email-change-sent/page.tsx
+import Link from 'next/link'
 
 type Props = {
   // Next.js 15 では searchParams は Promise で必須扱い
@@ -38,6 +39,10 @@ export default async function EmailChangeSentPage({ searchParams }: Props) {
       >
         ログイン画面へ戻る
       </a>
+
+      <Link href="/login" className="inline-block bg-blue-600 text-white px-4 py-2 rounded">
+        ログイン画面へ戻る
+      </Link>
     </div>
   )
 }

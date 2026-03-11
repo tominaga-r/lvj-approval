@@ -24,7 +24,6 @@ export async function createRequestType(name: string) {
 
   revalidatePath('/admin')
   revalidatePath('/requests/new') // 種別プルダウン反映
-  revalidatePath('/requests/[id]') // DRAFT編集で種別反映
 }
 
 export async function renameRequestType(id: number, name: string) {
@@ -41,7 +40,6 @@ export async function renameRequestType(id: number, name: string) {
 
   revalidatePath('/admin')
   revalidatePath('/requests/new')
-  revalidatePath('/requests/[id]')
 }
 
 export async function deleteRequestType(id: number) {
@@ -61,7 +59,6 @@ export async function deleteRequestType(id: number) {
 
   revalidatePath('/admin')
   revalidatePath('/requests/new')
-  revalidatePath('/requests/[id]')
 }
 
 export async function updateUserRoleDepartment(

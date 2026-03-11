@@ -31,30 +31,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true })
 }
-
-// import { NextResponse } from 'next/server'
-// import { createSupabaseServerClient } from '@/lib/supabaseServer'
-
-// // キャッシュ禁止（なくていいかも）
-// export const dynamic = 'force-dynamic'
-// export const revalidate = 0
-
-// export async function POST(req: Request) {
-//   const { email } = await req.json()
-
-//   if (!email) {
-//     return NextResponse.json({ error: 'email required' }, { status: 400 })
-//   }
-
-//   const supabase = await createSupabaseServerClient()
-
-//   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-//     redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password`,
-//   })
-
-//   if (error) {
-//     return NextResponse.json({ error: error.message }, { status: 500 })
-//   }
-
-//   return NextResponse.json({ ok: true })
-// }

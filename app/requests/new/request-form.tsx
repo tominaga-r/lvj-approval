@@ -48,8 +48,12 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
   return (
     <div className="card space-y-4">
       <div>
-        <label className="label">申請種別</label>
+        <label htmlFor="new-request-type" className="label">
+          申請種別
+        </label>
         <select
+          id="new-request-type"
+          name="typeId"
           className="input"
           value={typeId}
           onChange={(e) => setTypeId(Number(e.target.value))}
@@ -64,8 +68,12 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
       </div>
 
       <div>
-        <label className="label">タイトル（必須）</label>
+        <label htmlFor="new-request-title" className="label">
+          タイトル（必須）
+        </label>
         <input
+          id="new-request-title"
+          name="title"
           className="input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -75,8 +83,12 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
       </div>
 
       <div>
-        <label className="label">内容（必須）</label>
+        <label htmlFor="new-request-description" className="label">
+          内容（必須）
+        </label>
         <textarea
+          id="new-request-description"
+          name="description"
           className="input"
           style={{ minHeight: 120 }}
           value={description}
@@ -88,8 +100,12 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="label">金額（任意）</label>
+          <label htmlFor="new-request-amount" className="label">
+            金額（任意）
+          </label>
           <input
+            id="new-request-amount"
+            name="amount"
             className="input"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -100,8 +116,12 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
         </div>
 
         <div>
-          <label className="label">希望日（任意）</label>
+          <label htmlFor="new-request-neededBy" className="label">
+            希望日（任意）
+          </label>
           <input
+            id="new-request-neededBy"
+            name="neededBy"
             className="input"
             type="date"
             value={neededBy}

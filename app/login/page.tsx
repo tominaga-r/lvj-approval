@@ -3,10 +3,8 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [mode, setMode] = useState<'signin' | 'forgot'>('signin')
   const [loading, setLoading] = useState(false)
 
@@ -26,7 +24,7 @@ export default function LoginPage() {
       })
       if (error) return alert('ログイン失敗: ' + error.message)
 
-      // before: router.push('/dashboard')
+      // Header が server component のため、確実に反映させる目的でフルリロード
       window.location.href = '/dashboard'
     } finally {
       setLoading(false)
@@ -78,8 +76,14 @@ export default function LoginPage() {
 
       <div className="card space-y-3">
         <div>
-          <label className="label">メールアドレス</label>
+          <label htmlFor="email" className="label">
+            メールアドレス
+          </label>
           <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
             className="input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -90,10 +94,15 @@ export default function LoginPage() {
 
         {mode === 'signin' && (
           <div>
-            <label className="label">パスワード</label>
+            <label htmlFor="password" className="label">
+              パスワード
+            </label>
             <input
-              className="input"
+              id="password"
+              name="password"
               type="password"
+              autoComplete="current-password"
+              className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -118,4 +127,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

@@ -121,6 +121,7 @@ export default function EditDraftForm(props: {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             inputMode="numeric"
+            placeholder="例：12,000"
             disabled={pending}
           />
         </div>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
 import { RequestActionsPanel } from './RequestActionsPanel'
 import EditDraftForm from './EditDraftForm'
+import { formatAmount } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -110,7 +111,7 @@ export default async function RequestDetailPage({ params }: Props) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm pt-2">
-          <div className="rounded border p-2 bg-white">金額: {reqRow.amount ?? '-'}</div>
+          <div className="rounded border p-2 bg-white">金額: {formatAmount(reqRow.amount)}</div>
           <div className="rounded border p-2 bg-white">希望日: {reqRow.needed_by ?? '-'}</div>
           <div className="rounded border p-2 bg-white">
             更新: {new Date(reqRow.updated_at).toLocaleString()}

@@ -2,15 +2,17 @@
 
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/components/ui/ToastProvider'
 import { createDraftRequest } from './actions'
-import Link from 'next/link'
 
 type RequestType = { id: number; name: string }
 
 export function NewRequestForm({ types }: { types: RequestType[] }) {
   const { toast } = useToast()
+  const router = useRouter()
   const [pending, startTransition] = useTransition()
 
   const defaultTypeId = useMemo(() => (types[0]?.id ?? 1), [types])
@@ -31,14 +33,15 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
 
     startTransition(async () => {
       try {
-        await createDraftRequest({
+        const result = await createDraftRequest({
           typeId,
           title,
           description,
           amount,
           neededBy,
         })
-        // 成功するとredirectされるのでここには戻らない
+
+        router.push(`/requests/${result.id}`)
       } catch (e: any) {
         toast({ message: `作成エラー: ${e?.message ?? e}` })
       }
@@ -109,7 +112,7 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
             className="input"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="例：12000"
+            placeholder="例：12,000"
             inputMode="numeric"
             disabled={pending}
           />

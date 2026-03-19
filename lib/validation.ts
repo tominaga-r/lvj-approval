@@ -47,6 +47,23 @@ export const requestTypeNameSchema = z
   .min(1, { message: '種別名は必須です' })
   .max(50, { message: '種別名が長すぎます' })
 
+export const optionalRequestAmountSchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => {
+    if (!value || value === '') return null
+
+    const normalized = value.replace(/,/g, '')
+    const num = Number(normalized)
+
+    if (Number.isNaN(num)) {
+      throw new Error('金額が数値ではありません')
+    }
+
+    return num
+  })
+
 // ----------------------
 // Types
 // ----------------------

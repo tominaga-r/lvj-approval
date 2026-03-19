@@ -4,6 +4,20 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 
+function parseAmount(input?: string): number | null {
+  const raw = (input ?? '').trim()
+  if (!raw) return null
+
+  const normalized = raw.replace(/,/g, '')
+  const num = Number(normalized)
+
+  if (Number.isNaN(num)) {
+    throw new Error('金額が数値ではありません')
+  }
+
+  return num
+}
+
 export async function submitRequest(requestId: string, comment?: string) {
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.rpc('submit_request', {
@@ -70,11 +84,7 @@ export async function updateDraftRequest(
 ) {
   const supabase = await createSupabaseServerClient()
 
-  const amountNum =
-    input.amount && input.amount.trim() !== '' ? Number(input.amount) : null
-  if (amountNum !== null && Number.isNaN(amountNum)) {
-    throw new Error('金額が数値ではありません')
-  }
+  const amountNum = parseAmount(input.amount)
 
   const payload = {
     type_id: input.typeId,

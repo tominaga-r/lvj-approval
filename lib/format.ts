@@ -1,3 +1,4 @@
+// lib/format.ts
 export function formatAmount(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === '') return '-'
 

@@ -43,8 +43,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-
-      {/* 控えめ通知：スクリーンリーダに“必要以上に騒がせない” */}
       <div
         className="fixed inset-x-0 bottom-3 z-50 flex flex-col items-center gap-2 px-3 pointer-events-none"
         aria-live="polite"

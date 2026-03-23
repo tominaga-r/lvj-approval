@@ -147,20 +147,12 @@ flowchart TD
 
 ## ER Diagram
 
-## ER Diagram
-
 本設計はユーザー、申請種別、申請本体、操作履歴を分離して正規化している。  
 一方で `requests.department` は、申請時点の所属部署を保持し、権限制御と監査性を安定させるために意図的に保持している。  
 なお、`profiles.id` は Supabase Auth のユーザーIDと対応している。
 
 ```mermaid
 erDiagram
-    PROFILES ||--o{ REQUESTS : "creates"
-    PROFILES ||--o{ REQUESTS : "approves"
-    REQUEST_TYPES ||--o{ REQUESTS : "classifies"
-    REQUESTS ||--o{ REQUEST_ACTIONS : "has"
-    PROFILES ||--o{ REQUEST_ACTIONS : "acts"
-
     PROFILES {
         uuid id PK
         text name
@@ -199,6 +191,12 @@ erDiagram
         text comment
         timestamptz created_at
     }
+
+    PROFILES ||--o{ REQUESTS : requester_id
+    PROFILES ||--o{ REQUESTS : approver_id
+    REQUEST_TYPES ||--o{ REQUESTS : type_id
+    REQUESTS ||--o{ REQUEST_ACTIONS : request_id
+    PROFILES ||--o{ REQUEST_ACTIONS : actor_id
 ```
 
 ---

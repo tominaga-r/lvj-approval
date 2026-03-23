@@ -147,7 +147,59 @@ flowchart TD
 
 ## ER Diagram
 
-![ER](./docs/approvalapp-ER.png)
+## ER Diagram
+
+本設計はユーザー、申請種別、申請本体、操作履歴を分離して正規化している。  
+一方で `requests.department` は、申請時点の所属部署を保持し、権限制御と監査性を安定させるために意図的に保持している。  
+なお、`profiles.id` は Supabase Auth のユーザーIDと対応している。
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ REQUESTS : "creates"
+    PROFILES ||--o{ REQUESTS : "approves"
+    REQUEST_TYPES ||--o{ REQUESTS : "classifies"
+    REQUESTS ||--o{ REQUEST_ACTIONS : "has"
+    PROFILES ||--o{ REQUEST_ACTIONS : "acts"
+
+    PROFILES {
+        uuid id PK
+        text name
+        user_role role
+        text department
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    REQUEST_TYPES {
+        bigint id PK
+        text name UK
+        timestamptz created_at
+    }
+
+    REQUESTS {
+        uuid id PK
+        bigint type_id FK
+        text title
+        text description
+        numeric amount
+        date needed_by
+        request_status status
+        uuid requester_id FK
+        uuid approver_id FK
+        text department
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    REQUEST_ACTIONS {
+        bigint id PK
+        uuid request_id FK
+        uuid actor_id FK
+        request_action_type action
+        text comment
+        timestamptz created_at
+    }
+```
 
 ---
 ## Security Design

@@ -33,13 +33,6 @@ export default async function EmailChangeSentPage({ searchParams }: Props) {
         古いメールアドレスでログインして、設定画面から再度正しいメールアドレスを登録してください。
       </p>
 
-      <a
-        href="/login"
-        className="inline-block bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        ログイン画面へ戻る
-      </a>
-
       <Link href="/login" className="inline-block bg-blue-600 text-white px-4 py-2 rounded">
         ログイン画面へ戻る
       </Link>

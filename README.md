@@ -147,9 +147,9 @@ flowchart TD
 
 ## ER Diagram
 
-本設計はユーザー、申請種別、申請本体、操作履歴を分離して正規化している。  
-一方で `requests.department` は、申請時点の所属部署を保持し、権限制御と監査性を安定させるために意図的に保持している。  
-なお、`profiles.id` は Supabase Auth のユーザーIDと対応している。
+本設計はユーザー、申請種別、申請本体、操作履歴を分離して正規化しています。  
+一方で `requests.department` は、申請時点の所属部署を保持し、権限制御と監査性を安定させるために意図的に保持しています。  
+また、`profiles.id` は Supabase Auth のユーザーIDと対応しています。
 
 ```mermaid
 erDiagram

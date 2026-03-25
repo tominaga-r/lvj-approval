@@ -343,7 +343,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-E2E用に `.env.e2e.local` も使用します。
+Playwright E2E を実行する場合は、 `.env.e2e.local` も使用します。
+設定例は `.env.example` を参照してください。
 
 ### 3. Run
 

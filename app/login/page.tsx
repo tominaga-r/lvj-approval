@@ -1,7 +1,7 @@
 // app/login/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function LoginPage() {
@@ -12,9 +12,41 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
+  const [forgotCooldownUntil, setForgotCooldownUntil] = useState<number | null>(null)
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    if (!forgotCooldownUntil) return
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now())
+    }, 500)
+
+    return () => window.clearInterval(timer)
+  }, [forgotCooldownUntil])
+
+  useEffect(() => {
+    if (!forgotCooldownUntil) return
+    if (Date.now() >= forgotCooldownUntil) {
+      setForgotCooldownUntil(null)
+    }
+  }, [now, forgotCooldownUntil])
+
+  const cooldownActive = useMemo(() => {
+    return forgotCooldownUntil !== null && now < forgotCooldownUntil
+  }, [forgotCooldownUntil, now])
+
+  const cooldownSec = useMemo(() => {
+    if (!forgotCooldownUntil) return 0
+    return Math.max(0, Math.ceil((forgotCooldownUntil - now) / 1000))
+  }, [forgotCooldownUntil, now])
+
   const handleSignin = async () => {
     const e = email.trim()
-    if (!e || !password) return alert('メールアドレスとパスワードを入力してください')
+    if (!e || !password) {
+      alert('メールアドレスとパスワードを入力してください')
+      return
+    }
 
     setLoading(true)
     try {
@@ -32,8 +64,13 @@ export default function LoginPage() {
   }
 
   const handleForgot = async () => {
-    const target = email.trim()
-    if (!target) return alert('登録済みメールを入力してください')
+    if (loading || cooldownActive) return
+
+    const target = email.trim().toLowerCase()
+    if (!target) {
+      alert('登録済みメールを入力してください')
+      return
+    }
 
     setLoading(true)
     try {
@@ -43,11 +80,24 @@ export default function LoginPage() {
         body: JSON.stringify({ email: target }),
       })
 
+      const j = await res.json().catch(() => ({}))
+
       if (res.status === 400) {
-        const j = await res.json().catch(() => ({}))
         return alert('入力エラー: ' + (j.error ?? 'invalid'))
       }
 
+      if (res.status === 429) {
+        setForgotCooldownUntil(Date.now() + 60_000)
+        return alert(
+          j.error ?? 'メール送信回数の上限に達しました。時間をおいて再試行してください。'
+        )
+      }
+
+      if (!res.ok) {
+        return alert('再設定メール送信に失敗しました: ' + (j.error ?? res.statusText))
+      }
+
+      setForgotCooldownUntil(Date.now() + 30_000)
       alert('該当アカウントが存在する場合、パスワード再設定メールを送信しました。')
       setMode('signin')
     } finally {
@@ -115,8 +165,16 @@ export default function LoginPage() {
             {loading ? '処理中...' : 'ログイン'}
           </button>
         ) : (
-          <button className="btn btn-primary" onClick={handleForgot} disabled={loading}>
-            {loading ? '送信中...' : '再設定メールを送る'}
+          <button
+            className="btn btn-primary"
+            onClick={handleForgot}
+            disabled={loading || cooldownActive}
+          >
+            {loading
+              ? '送信中...'
+              : cooldownActive
+                ? `再送まで ${cooldownSec} 秒`
+                : '再設定メールを送る'}
           </button>
         )}
       </div>

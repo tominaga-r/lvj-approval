@@ -18,6 +18,8 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
 
   const [newEmail, setNewEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [reauthCode, setReauthCode] = useState('')
+  const [reauthSent, setReauthSent] = useState(false)
 
   const logout = () => {
     startTransition(async () => {
@@ -52,16 +54,46 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
     })
   }
 
-  const updatePassword = () => {
-    if (!newPassword) return toast({ message: '新しいパスワードを入力してください' })
-    if (newPassword.length < 8) return toast({ message: 'パスワードは8文字以上にしてください' })
+  const sendReauthCode = () => {
+    if (!newPassword) return toast({ message: '先に新しいパスワードを入力してください' })
+    if (newPassword.length < 8) {
+      return toast({ message: 'パスワードは8文字以上にしてください' })
+    }
 
     startTransition(async () => {
-      const { error } = await supabase.auth.updateUser({ password: newPassword })
-      if (error) return toast({ message: `更新失敗: ${error.message}` })
+      const { error } = await supabase.auth.reauthenticate()
+      if (error) {
+        return toast({ message: `再認証コード送信失敗: ${error.message}` })
+      }
+
+      setReauthSent(true)
+      toast({ message: '再認証コードを送信しました。メールを確認してください。' })
+    })
+  }
+
+  const updatePassword = () => {
+    if (!newPassword) return toast({ message: '新しいパスワードを入力してください' })
+    if (newPassword.length < 8) {
+      return toast({ message: 'パスワードは8文字以上にしてください' })
+    }
+    if (!reauthCode.trim()) {
+      return toast({ message: 'メールで届いた再認証コードを入力してください' })
+    }
+
+    startTransition(async () => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        nonce: reauthCode.trim(),
+      })
+
+      if (error) {
+        return toast({ message: `更新失敗: ${error.message}` })
+      }
 
       toast({ message: 'パスワードを更新しました。' })
       setNewPassword('')
+      setReauthCode('')
+      setReauthSent(false)
     })
   }
 
@@ -95,9 +127,9 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
           <input
             id="settings-new-email"
             name="newEmail"
+            className="input"
             type="email"
             autoComplete="email"
-            className="input"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             placeholder="new-email@example.com"
@@ -131,9 +163,38 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
           />
         </div>
 
-        <button className="btn btn-primary" onClick={updatePassword} disabled={pending}>
-          {pending ? '処理中...' : 'パスワード更新'}
+        <button className="btn btn-secondary" onClick={sendReauthCode} disabled={pending}>
+          {pending ? '送信中...' : '再認証コードを送信'}
         </button>
+
+        {reauthSent && (
+          <>
+            <div>
+              <label htmlFor="settings-reauth-code" className="label">
+                メールで届いた再認証コード
+              </label>
+              <input
+                id="settings-reauth-code"
+                name="reauthCode"
+                className="input"
+                type="text"
+                inputMode="numeric"
+                value={reauthCode}
+                onChange={(e) => setReauthCode(e.target.value)}
+                placeholder="6桁コード"
+                disabled={pending}
+              />
+            </div>
+
+            <button className="btn btn-primary" onClick={updatePassword} disabled={pending}>
+              {pending ? '処理中...' : 'パスワード更新'}
+            </button>
+          </>
+        )}
+
+        <p className="text-xs text-gray-500">
+          パスワード変更前に、登録メールアドレスへ再認証コードを送信します。
+        </p>
       </div>
 
       <div className="flex">

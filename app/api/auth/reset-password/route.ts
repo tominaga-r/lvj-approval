@@ -1,5 +1,4 @@
 // app/api/auth/reset-password/route.ts
-// メール機能 ON にした場合に利用
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { z } from 'zod'
@@ -17,7 +16,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body', details }, { status: 400 })
   }
 
-  const origin = new URL(req.url).origin
+  const origin =
+    req.headers.get('origin') ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    new URL(req.url).origin
+
   const supabase = await createSupabaseServerClient()
 
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
@@ -26,7 +29,25 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error('resetPasswordForEmail error:', error)
-    return NextResponse.json({ ok: true })
+
+    if (error.status === 429 || error.code === 'over_email_send_rate_limit') {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'メール送信回数の上限に達しました。時間をおいて再試行してください。',
+          code: 'over_email_send_rate_limit',
+        },
+        { status: 429 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error.message || 'password reset failed',
+      },
+      { status: error.status || 500 }
+    )
   }
 
   return NextResponse.json({ ok: true })

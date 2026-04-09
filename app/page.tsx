@@ -1,14 +1,16 @@
 // app/page.tsx
 import { redirect } from 'next/navigation'
-import { requireUser } from '@/lib/authz'
+import { createSupabaseServerClient } from '@/lib/supabaseServer'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  try {
-    await requireUser()
+  const supabase = await createSupabaseServerClient()
+  const { data: auth } = await supabase.auth.getUser()
+
+  if (auth.user) {
     redirect('/dashboard')
-  } catch {
-    redirect('/login')
   }
+
+  redirect('/login')
 }

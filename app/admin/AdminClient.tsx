@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 import { ConfirmDialog } from '@/app/components/ui/ConfirmDialog'
 import { useToast } from '@/app/components/ui/ToastProvider'
+import { normalizeErrorMessage } from '@/lib/error'
 import {
   createRequestType,
   deleteRequestType,
@@ -23,13 +24,18 @@ type UserRow = {
   updated_at: string
 }
 
+type RequestTypeSort = 'id-asc' | 'name-asc' | 'name-desc'
+
+function normalizeTypeName(value: string) {
+  return value.trim().toLowerCase()
+}
+
 export default function AdminClient(props: { requestTypes: RequestTypeRow[]; users: UserRow[] }) {
   const { requestTypes, users } = props
   const { toast } = useToast()
   const [pending, startTransition] = useTransition()
   const router = useRouter()
 
-  // request_types
   const [newTypeName, setNewTypeName] = useState('')
   const [rename, setRename] = useState<Record<number, string>>({})
   const [dialog, setDialog] = useState<null | {
@@ -39,8 +45,13 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
     run: () => Promise<void>
   }>(null)
 
-  // users
   const [editUser, setEditUser] = useState<Record<string, { role: Role; department: string }>>({})
+  const [nameQuery, setNameQuery] = useState('')
+  const [departmentQuery, setDepartmentQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'ALL' | Role>('ALL')
+
+  const [requestTypeQuery, setRequestTypeQuery] = useState('')
+  const [requestTypeSort, setRequestTypeSort] = useState<RequestTypeSort>('id-asc')
 
   const usersWithDraft = useMemo(() => {
     const map = { ...editUser }
@@ -50,14 +61,55 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
     return map
   }, [users, editUser])
 
+  const filteredUsers = useMemo(() => {
+    const nq = nameQuery.trim().toLowerCase()
+    const dq = departmentQuery.trim().toLowerCase()
+
+    return users.filter((u) => {
+      const matchesName = nq.length === 0 || u.name.toLowerCase().includes(nq)
+      const matchesDepartment = dq.length === 0 || u.department.toLowerCase().includes(dq)
+      const matchesRole = roleFilter === 'ALL' || u.role === roleFilter
+      return matchesName && matchesDepartment && matchesRole
+    })
+  }, [users, nameQuery, departmentQuery, roleFilter])
+
+  const filteredRequestTypes = useMemo(() => {
+    const q = requestTypeQuery.trim().toLowerCase()
+
+    const next = requestTypes.filter((t) => {
+      if (!q) return true
+      return t.name.toLowerCase().includes(q)
+    })
+
+    next.sort((a, b) => {
+      if (requestTypeSort === 'name-asc') {
+        return a.name.localeCompare(b.name, 'ja')
+      }
+      if (requestTypeSort === 'name-desc') {
+        return b.name.localeCompare(a.name, 'ja')
+      }
+      return a.id - b.id
+    })
+
+    return next
+  }, [requestTypes, requestTypeQuery, requestTypeSort])
+
+  const existingTypeNameSet = useMemo(() => {
+    return new Set(requestTypes.map((t) => normalizeTypeName(t.name)))
+  }, [requestTypes])
+
+  const newTypeNameNormalized = normalizeTypeName(newTypeName)
+  const isDuplicateNewType =
+    newTypeNameNormalized.length > 0 && existingTypeNameSet.has(newTypeNameNormalized)
+
   const run = (fn: () => Promise<void>) => {
     startTransition(async () => {
       try {
         await fn()
         toast({ message: '更新しました' })
-        router.refresh() 
-      } catch (e: any) {
-        toast({ message: `エラー: ${e?.message ?? e}` })
+        router.refresh()
+      } catch (e: unknown) {
+        toast({ message: `エラー: ${normalizeErrorMessage(e)}` })
       } finally {
         setDialog(null)
       }
@@ -66,7 +118,6 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
 
   return (
     <div className="space-y-8">
-      {/* request_types */}
       <div className="card space-y-4">
         <div className="font-semibold">申請種別マスタ（request_types）</div>
 
@@ -84,11 +135,16 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
               onChange={(e) => setNewTypeName(e.target.value)}
               disabled={pending}
             />
+            {isDuplicateNewType && (
+              <div className="mt-1 text-xs text-red-600">
+                同じ名前の申請種別が既にあります。
+              </div>
+            )}
           </div>
 
           <button
             className="btn btn-primary"
-            disabled={pending || newTypeName.trim().length === 0}
+            disabled={pending || newTypeName.trim().length === 0 || isDuplicateNewType}
             onClick={() =>
               run(async () => {
                 await createRequestType(newTypeName)
@@ -100,15 +156,62 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
           </button>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+          <div className="sm:col-span-2">
+            <label htmlFor="admin-request-type-search" className="label">
+              種別名検索
+            </label>
+            <input
+              id="admin-request-type-search"
+              name="requestTypeSearch"
+              className="input"
+              value={requestTypeQuery}
+              onChange={(e) => setRequestTypeQuery(e.target.value)}
+              placeholder="種別名で検索"
+              disabled={pending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="admin-request-type-sort" className="label">
+              並び順
+            </label>
+            <select
+              id="admin-request-type-sort"
+              name="requestTypeSort"
+              className="input"
+              value={requestTypeSort}
+              onChange={(e) => setRequestTypeSort(e.target.value as RequestTypeSort)}
+              disabled={pending}
+            >
+              <option value="id-asc">登録順</option>
+              <option value="name-asc">名前昇順</option>
+              <option value="name-desc">名前降順</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="text-sm text-gray-600">
+          表示件数: {filteredRequestTypes.length} / {requestTypes.length}
+        </div>
+
         <div className="space-y-2">
-          {requestTypes.map((t) => {
+          {filteredRequestTypes.map((t) => {
             const v = rename[t.id] ?? t.name
             const renameId = `admin-rename-type-${t.id}`
+            const normalizedCurrent = normalizeTypeName(v)
+            const isDuplicateRename =
+              normalizedCurrent.length > 0 &&
+              requestTypes.some(
+                (other) =>
+                  other.id !== t.id && normalizeTypeName(other.name) === normalizedCurrent
+              )
+
             return (
               <div key={t.id} className="rounded border p-3 bg-white space-y-2">
                 <div className="text-xs text-gray-500">id: {t.id}</div>
 
-                <div className="flex gap-2 flex-wrap items-center">
+                <div className="flex gap-2 flex-wrap items-start">
                   <div className="flex-1 min-w-[240px]">
                     <label htmlFor={renameId} className="sr-only">
                       種別名（id: {t.id}）
@@ -121,11 +224,21 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
                       onChange={(e) => setRename((p) => ({ ...p, [t.id]: e.target.value }))}
                       disabled={pending}
                     />
+                    {isDuplicateRename && (
+                      <div className="mt-1 text-xs text-red-600">
+                        同じ名前の申請種別が既にあります。
+                      </div>
+                    )}
                   </div>
 
                   <button
                     className="btn btn-secondary"
-                    disabled={pending || v.trim().length === 0 || v.trim() === t.name}
+                    disabled={
+                      pending ||
+                      v.trim().length === 0 ||
+                      v.trim() === t.name ||
+                      isDuplicateRename
+                    }
                     onClick={() =>
                       run(async () => {
                         await renameRequestType(t.id, v)
@@ -153,18 +266,78 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
               </div>
             )
           })}
+
+          {filteredRequestTypes.length === 0 && (
+            <div className="rounded border p-3 bg-white text-sm text-gray-600">
+              一致する申請種別はありません。
+            </div>
+          )}
         </div>
       </div>
 
-      {/* users */}
       <div className="card space-y-4">
         <div className="font-semibold">ユーザー権限・部署（profiles）</div>
         <div className="text-xs text-gray-600">
           ※ role/department は ADMIN のみ変更できます（DBトリガー/ポリシー）。
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+          <div>
+            <label htmlFor="admin-user-search-name" className="label">
+              Name検索
+            </label>
+            <input
+              id="admin-user-search-name"
+              name="searchName"
+              className="input"
+              value={nameQuery}
+              onChange={(e) => setNameQuery(e.target.value)}
+              placeholder="名前で検索"
+              disabled={pending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="admin-user-search-department" className="label">
+              Department検索
+            </label>
+            <input
+              id="admin-user-search-department"
+              name="searchDepartment"
+              className="input"
+              value={departmentQuery}
+              onChange={(e) => setDepartmentQuery(e.target.value)}
+              placeholder="部署で検索"
+              disabled={pending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="admin-user-role-filter" className="label">
+              Role絞り込み
+            </label>
+            <select
+              id="admin-user-role-filter"
+              name="roleFilter"
+              className="input"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as 'ALL' | Role)}
+              disabled={pending}
+            >
+              <option value="ALL">ALL</option>
+              <option value="REQUESTER">REQUESTER</option>
+              <option value="APPROVER">APPROVER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            表示件数: {filteredUsers.length} / {users.length}
+          </div>
+        </div>
+
         <div className="space-y-2">
-          {users.map((u) => {
+          {filteredUsers.map((u) => {
             const draft = usersWithDraft[u.id]
             const changed = draft.role !== u.role || draft.department !== u.department
 
@@ -240,6 +413,12 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
               </div>
             )
           })}
+
+          {filteredUsers.length === 0 && (
+            <div className="rounded border p-3 bg-white text-sm text-gray-600">
+              一致するユーザーはいません。
+            </div>
+          )}
         </div>
       </div>
 

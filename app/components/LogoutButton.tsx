@@ -5,7 +5,11 @@ import { supabase } from '@/lib/supabaseClient'
 
 export default function LogoutButton() {
   const onLogout = async () => {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error('logout error:', error)
+      return
+    }
     window.location.href = '/login'
   }
 

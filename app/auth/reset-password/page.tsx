@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { normalizeErrorMessage } from '@/lib/error'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -14,7 +15,6 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
-  // ページを開いた時点でリカバリセッション確認 + hash を安全に消す
   useEffect(() => {
     let cancelled = false
 
@@ -22,21 +22,19 @@ export default function ResetPasswordPage() {
       try {
         const { data, error: sessionError } = await supabase.auth.getSession()
 
-        // token がURLに残らないように hash を消す
         const cleanUrl = window.location.pathname + window.location.search
         window.history.replaceState(null, '', cleanUrl)
 
-        // セッションが無いなら「期限切れ/直開き」
         if (!data.session || sessionError) {
           if (cancelled) return
           setError(
             'このパスワード再設定リンクは無効か、期限切れの可能性があります。\nもう一度パスワード再設定メールを送信してください。'
           )
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error('getSession error:', e)
         if (cancelled) return
-        // hash はここでも消しておく
+
         const cleanUrl = window.location.pathname + window.location.search
         window.history.replaceState(null, '', cleanUrl)
 
@@ -80,7 +78,12 @@ export default function ResetPasswordPage() {
 
       if (updateError) {
         const msg = (updateError.message ?? '').toLowerCase()
-        if (msg.includes('recovery') || msg.includes('session') || msg.includes('token') || msg.includes('expired')) {
+        if (
+          msg.includes('recovery') ||
+          msg.includes('session') ||
+          msg.includes('token') ||
+          msg.includes('expired')
+        ) {
           setError(
             'このパスワード再設定リンクは無効か、期限切れの可能性があります。\nもう一度パスワード再設定メールを送信してください。'
           )
@@ -97,9 +100,9 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login')
       }, 800)
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('reset-password error:', e)
-      setError(e?.message ?? 'パスワード更新中に予期しないエラーが発生しました。')
+      setError(normalizeErrorMessage(e, 'パスワード更新中に予期しないエラーが発生しました。'))
     } finally {
       setLoading(false)
     }

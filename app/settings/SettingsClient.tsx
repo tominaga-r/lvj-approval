@@ -4,6 +4,7 @@
 import { useState, useTransition } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useToast } from '@/app/components/ui/ToastProvider'
+import { normalizeErrorMessage } from '@/lib/error'
 
 type Profile = {
   id: string
@@ -48,8 +49,8 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
 
         toast({ message: '確認メールを送信しました。受信箱を確認してください。' })
         setNewEmail('')
-      } catch (err: any) {
-        toast({ message: `更新失敗: ${err?.message ?? err}` })
+      } catch (err: unknown) {
+        toast({ message: `更新失敗: ${normalizeErrorMessage(err)}` })
       }
     })
   }
@@ -61,13 +62,17 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
     }
 
     startTransition(async () => {
-      const { error } = await supabase.auth.reauthenticate()
-      if (error) {
-        return toast({ message: `再認証コード送信失敗: ${error.message}` })
-      }
+      try {
+        const { error } = await supabase.auth.reauthenticate()
+        if (error) {
+          return toast({ message: `再認証コード送信失敗: ${error.message}` })
+        }
 
-      setReauthSent(true)
-      toast({ message: '再認証コードを送信しました。メールを確認してください。' })
+        setReauthSent(true)
+        toast({ message: '再認証コードを送信しました。メールを確認してください。' })
+      } catch (err: unknown) {
+        toast({ message: `再認証コード送信失敗: ${normalizeErrorMessage(err)}` })
+      }
     })
   }
 
@@ -81,19 +86,23 @@ export default function SettingsClient({ profile }: { profile: Profile }) {
     }
 
     startTransition(async () => {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-        nonce: reauthCode.trim(),
-      })
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+          nonce: reauthCode.trim(),
+        })
 
-      if (error) {
-        return toast({ message: `更新失敗: ${error.message}` })
+        if (error) {
+          return toast({ message: `更新失敗: ${error.message}` })
+        }
+
+        toast({ message: 'パスワードを更新しました。' })
+        setNewPassword('')
+        setReauthCode('')
+        setReauthSent(false)
+      } catch (err: unknown) {
+        toast({ message: `更新失敗: ${normalizeErrorMessage(err)}` })
       }
-
-      toast({ message: 'パスワードを更新しました。' })
-      setNewPassword('')
-      setReauthCode('')
-      setReauthSent(false)
     })
   }
 

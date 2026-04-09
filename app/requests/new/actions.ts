@@ -2,6 +2,7 @@
 'use server'
 
 import { requireRole } from '@/lib/authz'
+import { parseOptionalRequestAmount } from '@/lib/validation'
 
 export type CreateRequestInput = {
   typeId: number
@@ -11,20 +12,6 @@ export type CreateRequestInput = {
   neededBy?: string
 }
 
-function parseAmount(input?: string): number | null {
-  const raw = (input ?? '').trim()
-  if (!raw) return null
-
-  const normalized = raw.replace(/,/g, '')
-  const num = Number(normalized)
-
-  if (Number.isNaN(num)) {
-    throw new Error('金額が数値ではありません')
-  }
-
-  return num
-}
-
 export async function createDraftRequest(input: CreateRequestInput) {
   const { supabase, user, profile } = await requireRole(['REQUESTER', 'ADMIN'])
 
@@ -32,7 +19,7 @@ export async function createDraftRequest(input: CreateRequestInput) {
     throw new Error('profiles.department not found')
   }
 
-  const amountNum = parseAmount(input.amount)
+  const amountNum = parseOptionalRequestAmount(input.amount)
 
   const insertPayload = {
     type_id: input.typeId,

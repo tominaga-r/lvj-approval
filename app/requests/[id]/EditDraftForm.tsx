@@ -2,6 +2,7 @@
 'use client'
 import { useMemo, useState, useTransition } from 'react'
 import { useToast } from '@/app/components/ui/ToastProvider'
+import { normalizeErrorMessage } from '@/lib/error'
 import { updateDraftRequest } from './actions'
 
 type RequestType = { id: number; name: string }
@@ -50,8 +51,8 @@ export default function EditDraftForm(props: {
           neededBy,
         })
         toast({ message: '下書きを更新しました' })
-      } catch (e: any) {
-        toast({ message: `更新エラー: ${e?.message ?? e}` })
+      } catch (e: unknown) {
+        toast({ message: `更新エラー: ${normalizeErrorMessage(e)}` })
       }
     })
   }

@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { normalizeErrorMessage } from '@/lib/error'
 
 export default function ConfirmedClient({ next }: { next: string }) {
   const ran = useRef(false)
@@ -14,7 +15,6 @@ export default function ConfirmedClient({ next }: { next: string }) {
 
     ;(async () => {
       try {
-        // hash から token が来ていれば、ブラウザ側の supabase-js に確実に反映
         const hash = window.location.hash.startsWith('#')
           ? window.location.hash.slice(1)
           : window.location.hash
@@ -28,22 +28,19 @@ export default function ConfirmedClient({ next }: { next: string }) {
             refresh_token,
           })
           if (error) throw error
-          await supabase.auth.getUser() // 念のため
+          await supabase.auth.getUser()
         } else {
-          // token が無い場合でも、念のため読み直し（Cookie/LS の差分吸収）
           await supabase.auth.getSession()
           await supabase.auth.getUser()
         }
 
-        // URL から hash を消す（履歴に残しにくくする）
         const clean = window.location.pathname + window.location.search
         window.history.replaceState(null, '', clean)
 
-        // Next.js の古い表示を確実に捨てる
         window.location.replace(next)
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error(e)
-        setError('認証の反映に失敗しました。もう一度ログインしてください。')
+        setError(normalizeErrorMessage(e, '認証の反映に失敗しました。もう一度ログインしてください。'))
       }
     })()
   }, [next])
@@ -51,9 +48,7 @@ export default function ConfirmedClient({ next }: { next: string }) {
   return (
     <div className="max-w-md mx-auto p-6">
       <h1 className="text-lg font-bold mb-3">認証情報を反映中…</h1>
-      <p className="text-sm text-gray-700">
-        画面を移動しています。しばらくお待ちください。
-      </p>
+      <p className="text-sm text-gray-700">画面を移動しています。しばらくお待ちください。</p>
 
       {error && (
         <div className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-line">

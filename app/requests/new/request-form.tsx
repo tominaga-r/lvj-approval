@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/components/ui/ToastProvider'
+import { normalizeErrorMessage } from '@/lib/error'
 import { createDraftRequest } from './actions'
 
 type RequestType = { id: number; name: string }
@@ -42,8 +43,8 @@ export function NewRequestForm({ types }: { types: RequestType[] }) {
         })
 
         router.push(`/requests/${result.id}`)
-      } catch (e: any) {
-        toast({ message: `作成エラー: ${e?.message ?? e}` })
+      } catch (e: unknown) {
+        toast({ message: `作成エラー: ${normalizeErrorMessage(e)}` })
       }
     })
   }

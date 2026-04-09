@@ -64,6 +64,10 @@ export const optionalRequestAmountSchema = z
     return num
   })
 
+export function parseOptionalRequestAmount(input?: string): number | null {
+  return optionalRequestAmountSchema.parse(input)
+}
+
 // ----------------------
 // Types
 // ----------------------

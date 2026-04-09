@@ -3,12 +3,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { normalizeErrorMessage } from '@/lib/error'
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'signin' | 'forgot'>('signin')
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
-  // signin
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -43,8 +45,11 @@ export default function LoginPage() {
 
   const handleSignin = async () => {
     const e = email.trim()
+    setErrorMessage(null)
+    setInfoMessage(null)
+
     if (!e || !password) {
-      alert('メールアドレスとパスワードを入力してください')
+      setErrorMessage('メールアドレスとパスワードを入力してください')
       return
     }
 
@@ -54,10 +59,15 @@ export default function LoginPage() {
         email: e,
         password,
       })
-      if (error) return alert('ログイン失敗: ' + error.message)
+      if (error) {
+        setErrorMessage(`ログイン失敗: ${error.message}`)
+        return
+      }
 
       // Header が server component のため、確実に反映させる目的でフルリロード
       window.location.href = '/dashboard'
+    } catch (e: unknown) {
+      setErrorMessage(normalizeErrorMessage(e, 'ログインに失敗しました'))
     } finally {
       setLoading(false)
     }
@@ -67,8 +77,11 @@ export default function LoginPage() {
     if (loading || cooldownActive) return
 
     const target = email.trim().toLowerCase()
+    setErrorMessage(null)
+    setInfoMessage(null)
+
     if (!target) {
-      alert('登録済みメールを入力してください')
+      setErrorMessage('登録済みメールを入力してください')
       return
     }
 
@@ -83,23 +96,28 @@ export default function LoginPage() {
       const j = await res.json().catch(() => ({}))
 
       if (res.status === 400) {
-        return alert('入力エラー: ' + (j.error ?? 'invalid'))
+        setErrorMessage(`入力エラー: ${j.error ?? 'invalid'}`)
+        return
       }
 
       if (res.status === 429) {
         setForgotCooldownUntil(Date.now() + 60_000)
-        return alert(
+        setErrorMessage(
           j.error ?? 'メール送信回数の上限に達しました。時間をおいて再試行してください。'
         )
+        return
       }
 
       if (!res.ok) {
-        return alert('再設定メール送信に失敗しました: ' + (j.error ?? res.statusText))
+        setErrorMessage(`再設定メール送信に失敗しました: ${j.error ?? res.statusText}`)
+        return
       }
 
       setForgotCooldownUntil(Date.now() + 30_000)
-      alert('該当アカウントが存在する場合、パスワード再設定メールを送信しました。')
+      setInfoMessage('該当アカウントが存在する場合、パスワード再設定メールを送信しました。')
       setMode('signin')
+    } catch (e: unknown) {
+      setErrorMessage(normalizeErrorMessage(e, '再設定メール送信に失敗しました'))
     } finally {
       setLoading(false)
     }
@@ -111,13 +129,21 @@ export default function LoginPage() {
 
       <div className="flex gap-2">
         <button
-          onClick={() => setMode('signin')}
+          onClick={() => {
+            setMode('signin')
+            setErrorMessage(null)
+            setInfoMessage(null)
+          }}
           className={`px-3 py-1 rounded ${mode === 'signin' ? 'bg-blue-600 text-white' : ''}`}
         >
           ログイン
         </button>
         <button
-          onClick={() => setMode('forgot')}
+          onClick={() => {
+            setMode('forgot')
+            setErrorMessage(null)
+            setInfoMessage(null)
+          }}
           className={`px-3 py-1 rounded ${mode === 'forgot' ? 'bg-blue-600 text-white' : ''}`}
         >
           パスワード再発行
@@ -125,6 +151,18 @@ export default function LoginPage() {
       </div>
 
       <div className="card space-y-3">
+        {errorMessage && (
+          <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-line">
+            {errorMessage}
+          </div>
+        )}
+
+        {infoMessage && (
+          <div className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700 whitespace-pre-line">
+            {infoMessage}
+          </div>
+        )}
+
         <div>
           <label htmlFor="email" className="label">
             メールアドレス

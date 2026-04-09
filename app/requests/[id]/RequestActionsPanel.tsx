@@ -5,6 +5,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { ConfirmDialog } from '@/app/components/ui/ConfirmDialog'
 import { useToast } from '@/app/components/ui/ToastProvider'
+import { normalizeErrorMessage } from '@/lib/error'
 import { approveRequest, cancelRequest, rejectRequest, submitRequest } from './actions'
 import { canCancel, canDecide, canSubmit, type Role, type Status } from '@/lib/permissions'
 
@@ -26,7 +27,6 @@ export function RequestActionsPanel(props: {
     run: () => Promise<void>
   }>(null)
 
-  // 条件を permissions.ts に寄せる
   const canSubmitAction = canSubmit(isOwner, status)
   const canCancelAction = canCancel(isOwner, status)
   const canDecideAction = canDecide(myRole, status)
@@ -43,8 +43,8 @@ export function RequestActionsPanel(props: {
         await fn()
         setComment('')
         toast({ message: '操作が完了しました' })
-      } catch (e: any) {
-        toast({ message: `エラー: ${e?.message ?? e}` })
+      } catch (e: unknown) {
+        toast({ message: `エラー: ${normalizeErrorMessage(e)}` })
       } finally {
         setDialog(null)
       }

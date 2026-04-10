@@ -59,6 +59,19 @@ export async function rejectRequest(requestId: string, comment?: string) {
   revalidatePath(`/requests/${requestId}`)
 }
 
+export async function returnRequest(requestId: string, comment?: string) {
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.rpc('return_request', {
+    p_request_id: requestId,
+    p_comment: comment ?? null,
+  })
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/requests')
+  revalidatePath('/approvals')
+  revalidatePath(`/requests/${requestId}`)
+}
+
 export async function updateDraftRequest(
   requestId: string,
   input: {

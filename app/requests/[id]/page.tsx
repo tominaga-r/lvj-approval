@@ -10,12 +10,31 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
+function actionLabel(action: string) {
+  switch (action) {
+    case 'CREATE':
+      return '作成'
+    case 'UPDATE':
+      return '更新'
+    case 'SUBMIT':
+      return '提出'
+    case 'RETURN':
+      return '差し戻し'
+    case 'APPROVE':
+      return '承認'
+    case 'REJECT':
+      return '却下'
+    case 'CANCEL':
+      return '取消'
+    default:
+      return action
+  }
+}
+
 export default async function RequestDetailPage({ params }: Props) {
   const { id: requestId } = await params
   const { supabase, profile: me } = await requireProfile()
 
-
-  // 申請（RLSで範囲が制限される）
   const { data: reqRow, error: reqErr } = await supabase
     .from('requests')
     .select(
@@ -43,7 +62,6 @@ export default async function RequestDetailPage({ params }: Props) {
     .eq('id', reqRow.type_id)
     .single()
 
-  // 申請者名（承認者は同部署profilesをSELECT可、というDB設計）
   const { data: requesterProfile } = await supabase
     .from('profiles')
     .select('name, department')
@@ -57,9 +75,9 @@ export default async function RequestDetailPage({ params }: Props) {
     .order('created_at', { ascending: false })
 
   const canEditDraft =
-    reqRow.status === 'DRAFT' && (me.role === 'ADMIN' || me.id === reqRow.requester_id)
+    (reqRow.status === 'DRAFT' || reqRow.status === 'RETURNED') &&
+    (me.role === 'ADMIN' || me.id === reqRow.requester_id)
 
-  // 編集できるときだけ request_types を取得
   let typesForEdit: { id: number; name: string }[] = []
   if (canEditDraft) {
     const { data } = await supabase
@@ -80,17 +98,11 @@ export default async function RequestDetailPage({ params }: Props) {
 
       <div className="card space-y-2">
         <div className="text-sm text-gray-600">
-          種別:{' '}
-          <span className="text-gray-900">
-            {typeRow?.name ?? `type_id=${reqRow.type_id}`}
-          </span>
+          種別: <span className="text-gray-900">{typeRow?.name ?? `type_id=${reqRow.type_id}`}</span>
         </div>
 
         <div className="text-sm text-gray-600">
-          申請者:{' '}
-          <span className="text-gray-900">
-            {requesterProfile?.name ?? reqRow.requester_id}
-          </span>
+          申請者: <span className="text-gray-900">{requesterProfile?.name ?? reqRow.requester_id}</span>
           {requesterProfile?.department ? ` / ${requesterProfile.department}` : ''}
         </div>
 
@@ -99,22 +111,19 @@ export default async function RequestDetailPage({ params }: Props) {
         </div>
 
         <div className="text-sm text-gray-600">
-          ステータス:{' '}
-          <span className="text-gray-900 font-semibold">{reqRow.status}</span>
+          ステータス: <span className="text-gray-900 font-semibold">{reqRow.status}</span>
         </div>
 
         <div className="pt-2">
           <div className="font-semibold">{reqRow.title}</div>
-          <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
-            {reqRow.description}
-          </div>
+          <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{reqRow.description}</div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm pt-2">
           <div className="rounded border p-2 bg-white">金額: {formatAmount(reqRow.amount)}</div>
           <div className="rounded border p-2 bg-white">希望日: {reqRow.needed_by ?? '-'}</div>
           <div className="rounded border p-2 bg-white">
-            更新: {new Date(reqRow.updated_at).toLocaleString()}
+            更新: {new Date(reqRow.updated_at).toLocaleString('ja-JP')}
           </div>
         </div>
       </div>
@@ -151,11 +160,8 @@ export default async function RequestDetailPage({ params }: Props) {
           {(actions ?? []).map((a) => (
             <div key={a.id} className="rounded border p-2 bg-white">
               <div className="text-gray-700">
-                <span className="font-semibold">{a.action}</span>
-                <span className="text-gray-500">
-                  {' '}
-                  / {new Date(a.created_at).toLocaleString()}
-                </span>
+                <span className="font-semibold">{actionLabel(a.action)}</span>
+                <span className="text-gray-500"> / {new Date(a.created_at).toLocaleString('ja-JP')}</span>
               </div>
               {a.comment && (
                 <div className="mt-1 text-gray-800 whitespace-pre-wrap">{a.comment}</div>

@@ -15,7 +15,13 @@ type Props = {
   }>
 }
 
-type Status = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+type Status =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'RETURNED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED'
 
 function statusChipClass(status: string) {
   switch (status) {
@@ -23,6 +29,8 @@ function statusChipClass(status: string) {
       return 'bg-gray-100 text-gray-700 border-gray-200'
     case 'SUBMITTED':
       return 'bg-blue-50 text-blue-700 border-blue-200'
+    case 'RETURNED':
+      return 'bg-orange-50 text-orange-700 border-orange-200'
     case 'APPROVED':
       return 'bg-green-50 text-green-700 border-green-200'
     case 'REJECTED':
@@ -124,6 +132,7 @@ export default async function RequestsPage({ searchParams }: Props) {
             <option value="">すべて</option>
             <option value="DRAFT">DRAFT</option>
             <option value="SUBMITTED">SUBMITTED</option>
+            <option value="RETURNED">RETURNED</option>
             <option value="APPROVED">APPROVED</option>
             <option value="REJECTED">REJECTED</option>
             <option value="CANCELLED">CANCELLED</option>

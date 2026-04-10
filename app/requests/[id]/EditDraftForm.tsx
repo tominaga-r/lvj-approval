@@ -59,7 +59,7 @@ export default function EditDraftForm(props: {
 
   return (
     <div className="card space-y-4">
-      <div className="font-medium">下書きの編集（DRAFTのみ）</div>
+      <div className="font-medium">申請の編集（DRAFT / RETURNED）</div>
 
       <div>
         <label htmlFor="edit-draft-type" className="label">

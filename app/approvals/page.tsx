@@ -10,8 +10,11 @@ type Props = {
     q?: string
     department?: string
     sort?: string
+    status?: string
   }>
 }
+
+type ApprovalStatus = 'SUBMITTED' | 'RETURNED' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
 
 function getTypeName(row: {
   request_types?: { name?: string } | { name?: string }[] | null
@@ -27,15 +30,25 @@ export default async function ApprovalsPage({ searchParams }: Props) {
   const resolved = await searchParams
 
   const isAdmin = profile.role === 'ADMIN'
-  const heading = isAdmin ? '承認待ち（全件）' : `承認待ち（${profile.department}）`
   const q = (resolved.q ?? '').trim()
   const department = isAdmin ? (resolved.department ?? '').trim() : ''
   const sort = resolved.sort === 'oldest' ? 'oldest' : 'newest'
+  const status = (resolved.status ?? 'SUBMITTED').trim() as ApprovalStatus
+
+  const heading =
+    status === 'SUBMITTED'
+      ? isAdmin
+        ? '承認待ち（全件）'
+        : `承認待ち（${profile.department}）`
+      : `承認一覧（${status}）`
 
   let query = supabase
     .from('requests')
     .select('id, title, status, department, created_at, amount, needed_by, request_types(name)')
-    .eq('status', 'SUBMITTED')
+
+  if (status) {
+    query = query.eq('status', status)
+  }
 
   if (q) {
     query = query.ilike('title', `%${q}%`)
@@ -52,7 +65,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
   if (error) {
     return (
       <div className="max-w-5xl mx-auto p-6 text-red-600">
-        承認待ちの取得エラー: {error.message}
+        承認一覧の取得エラー: {error.message}
       </div>
     )
   }
@@ -66,8 +79,8 @@ export default async function ApprovalsPage({ searchParams }: Props) {
         </Link>
       </div>
 
-      <form className="card grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className={isAdmin ? 'sm:col-span-2' : 'sm:col-span-2'}>
+      <form className="card grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div className="sm:col-span-2">
           <label htmlFor="approvals-q" className="label">
             キーワード
           </label>
@@ -78,6 +91,19 @@ export default async function ApprovalsPage({ searchParams }: Props) {
             defaultValue={q}
             placeholder="タイトルで検索"
           />
+        </div>
+
+        <div>
+          <label htmlFor="approvals-status" className="label">
+            ステータス
+          </label>
+          <select id="approvals-status" name="status" className="input" defaultValue={status}>
+            <option value="SUBMITTED">SUBMITTED</option>
+            <option value="RETURNED">RETURNED</option>
+            <option value="APPROVED">APPROVED</option>
+            <option value="REJECTED">REJECTED</option>
+            <option value="CANCELLED">CANCELLED</option>
+          </select>
         </div>
 
         <div>
@@ -105,7 +131,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
           </div>
         )}
 
-        <div className={`${isAdmin ? 'sm:col-span-2' : 'sm:col-span-3'} flex gap-2`}>
+        <div className={`${isAdmin ? 'sm:col-span-3' : 'sm:col-span-4'} flex gap-2`}>
           <button type="submit" className="btn btn-primary">
             絞り込む
           </button>
@@ -137,7 +163,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
           </Link>
         ))}
         {(rows ?? []).length === 0 && (
-          <div className="text-sm text-gray-600">承認待ちはありません。</div>
+          <div className="text-sm text-gray-600">条件に一致する申請はありません。</div>
         )}
       </div>
     </div>

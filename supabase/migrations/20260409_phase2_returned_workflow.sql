@@ -1,23 +1,13 @@
 -- =========================================================
--- Phase 2: RETURNED (差し戻し)
+-- Phase 2: RETURNED workflow / RPC updates
+-- Requires:
+--   - 20260325_init.sql
+--   - 20260409_phase2_returned_enum.sql
 -- =========================================================
 
 begin;
 
--- 1) enum 拡張
-do $$ begin
-  alter type public.request_status add value 'RETURNED';
-exception
-  when duplicate_object then null;
-end $$;
-
-do $$ begin
-  alter type public.request_action_type add value 'RETURN';
-exception
-  when duplicate_object then null;
-end $$;
-
--- 2) 申請者は RETURNED も再編集可
+-- 1) 申請者は RETURNED も再編集可
 drop policy if exists "requests_update_draft_owner_or_admin" on public.requests;
 create policy "requests_update_draft_owner_or_admin"
 on public.requests for update
@@ -30,7 +20,7 @@ with check (
   or (requester_id = auth.uid() and status in ('DRAFT','RETURNED'))
 );
 
--- 3) 提出（DRAFT / RETURNED -> SUBMITTED）
+-- 2) 提出（DRAFT / RETURNED -> SUBMITTED）
 create or replace function public.submit_request(
   p_request_id uuid,
   p_comment text default null
@@ -68,7 +58,7 @@ begin
 end;
 $$;
 
--- 4) 承認 / 却下（SUBMITTED -> APPROVED / REJECTED）
+-- 3) 承認 / 却下（SUBMITTED -> APPROVED / REJECTED）
 --    自分が申請者の案件は決裁不可
 create or replace function public.decide_request(
   p_request_id uuid,
@@ -131,7 +121,7 @@ begin
 end;
 $$;
 
--- 5) 差し戻し（SUBMITTED -> RETURNED）
+-- 4) 差し戻し（SUBMITTED -> RETURNED）
 --    自分が申請者の案件は差し戻し不可
 create or replace function public.return_request(
   p_request_id uuid,

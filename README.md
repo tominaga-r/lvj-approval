@@ -384,6 +384,7 @@ npm run test:e2e
 Supabase SQL Editor もしくは Supabase CLI で、以下の migration を順に適用してください。
 
 - `supabase/migrations/20260325_init.sql`
+- `supabase/migrations/20260409_phase2_returned_enum.sql`
 - `supabase/migrations/20260409_phase2_returned_workflow.sql`
 
 初期ユーザーの作成は Supabase Auth 側で行い、`profiles` は signup trigger により自動作成されます。

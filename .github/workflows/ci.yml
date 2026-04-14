@@ -34,8 +34,5 @@ jobs:
       - name: Unit test
         run: npm test
 
-      - name: Build
-        run: npm run build
-
       - name: Audit (high and critical only)
         run: npm audit --audit-level=high

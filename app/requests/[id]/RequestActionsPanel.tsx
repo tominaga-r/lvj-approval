@@ -45,10 +45,14 @@ export function RequestActionsPanel(props: {
   const canDecideAction = canDecide(myRole, status)
   const canReturnAction = canReturn(myRole, status)
 
+  const trimmedComment = comment.trim()
+
   const hint = useMemo(() => {
     if (status === 'DRAFT') return '下書き：申請者は編集・提出ができます。'
     if (status === 'RETURNED') return '差し戻し：修正後に再提出できます。'
-    if (status === 'SUBMITTED') return '提出済み：承認者が承認・差し戻し・却下できます。'
+    if (status === 'SUBMITTED') {
+      return '提出済み：承認者が承認・差し戻し・却下できます。差し戻し・却下にはコメントが必須です。'
+    }
     return 'この申請は確定しています。'
   }, [status])
 
@@ -66,13 +70,19 @@ export function RequestActionsPanel(props: {
     })
   }
 
+  const ensureComment = (message: string) => {
+    if (trimmedComment.length > 0) return true
+    toast({ message })
+    return false
+  }
+
   return (
     <div className="card space-y-3">
       <div className="text-sm text-gray-600">{hint}</div>
 
       <div>
         <label htmlFor="request-action-comment" className="label">
-          コメント（任意）
+          コメント（差し戻し・却下は必須）
         </label>
         <input
           id="request-action-comment"
@@ -97,7 +107,7 @@ export function RequestActionsPanel(props: {
                   status === 'RETURNED'
                     ? '修正済みの申請を再提出して承認待ちに戻します。'
                     : '提出後は承認待ちになります。',
-                run: () => submitRequest(requestId, comment),
+                run: () => submitRequest(requestId, trimmedComment || undefined),
               })
             }
           >
@@ -114,7 +124,7 @@ export function RequestActionsPanel(props: {
                 title: '取消しますか？',
                 description: '取消後はキャンセル扱いになります。',
                 destructive: true,
-                run: () => cancelRequest(requestId, comment),
+                run: () => cancelRequest(requestId, trimmedComment || undefined),
               })
             }
           >
@@ -126,13 +136,14 @@ export function RequestActionsPanel(props: {
           <button
             className="btn btn-secondary"
             disabled={pending}
-            onClick={() =>
+            onClick={() => {
+              if (!ensureComment('差し戻しにはコメントが必須です')) return
               setDialog({
                 title: '差し戻しますか？',
                 description: '差し戻すと申請者が修正・再提出できる状態になります。',
-                run: () => returnRequest(requestId, comment),
+                run: () => returnRequest(requestId, trimmedComment),
               })
-            }
+            }}
           >
             {pending ? '処理中...' : '差し戻し'}
           </button>
@@ -147,7 +158,7 @@ export function RequestActionsPanel(props: {
                 setDialog({
                   title: '承認しますか？',
                   description: '承認すると APPROVED になります。',
-                  run: () => approveRequest(requestId, comment),
+                  run: () => approveRequest(requestId, trimmedComment || undefined),
                 })
               }
             >
@@ -157,14 +168,15 @@ export function RequestActionsPanel(props: {
             <button
               className="btn btn-secondary"
               disabled={pending}
-              onClick={() =>
+              onClick={() => {
+                if (!ensureComment('却下にはコメントが必須です')) return
                 setDialog({
                   title: '却下しますか？',
                   description: '却下すると REJECTED になります。',
                   destructive: true,
-                  run: () => rejectRequest(requestId, comment),
+                  run: () => rejectRequest(requestId, trimmedComment),
                 })
-              }
+              }}
             >
               {pending ? '処理中...' : '却下'}
             </button>

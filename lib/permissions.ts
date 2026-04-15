@@ -12,8 +12,8 @@ export function canCreateRequest(role: Role) {
   return role === 'REQUESTER' || role === 'ADMIN'
 }
 
-export function canEditDraft(role: Role, isOwner: boolean, status: Status) {
-  return (status === 'DRAFT' || status === 'RETURNED') && (role === 'ADMIN' || isOwner)
+export function canEditDraft(isOwner: boolean, status: Status) {
+  return isOwner && (status === 'DRAFT' || status === 'RETURNED')
 }
 
 export function canSubmit(isOwner: boolean, status: Status) {

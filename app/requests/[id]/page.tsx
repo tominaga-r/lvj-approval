@@ -74,9 +74,9 @@ export default async function RequestDetailPage({ params }: Props) {
     .eq('request_id', reqRow.id)
     .order('created_at', { ascending: false })
 
-  const canEditDraft =
-    (reqRow.status === 'DRAFT' || reqRow.status === 'RETURNED') &&
-    (me.role === 'ADMIN' || me.id === reqRow.requester_id)
+const canEditDraft =
+  (reqRow.status === 'DRAFT' || reqRow.status === 'RETURNED') &&
+  me.id === reqRow.requester_id
 
   let typesForEdit: { id: number; name: string }[] = []
   if (canEditDraft) {

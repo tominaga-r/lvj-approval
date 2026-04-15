@@ -17,12 +17,11 @@ describe('permissions', () => {
   })
 
   it('canEditDraft', () => {
-    expect(canEditDraft('REQUESTER', true, 'DRAFT')).toBe(true)
-    expect(canEditDraft('REQUESTER', true, 'RETURNED')).toBe(true)
-    expect(canEditDraft('REQUESTER', false, 'DRAFT')).toBe(false)
-    expect(canEditDraft('ADMIN', false, 'DRAFT')).toBe(true)
-    expect(canEditDraft('ADMIN', false, 'RETURNED')).toBe(true)
-    expect(canEditDraft('ADMIN', false, 'SUBMITTED')).toBe(false)
+    expect(canEditDraft(true, 'DRAFT')).toBe(true)
+    expect(canEditDraft(true, 'RETURNED')).toBe(true)
+    expect(canEditDraft(false, 'DRAFT')).toBe(false)
+    expect(canEditDraft(false, 'RETURNED')).toBe(false)
+    expect(canEditDraft(true, 'SUBMITTED')).toBe(false)
   })
 
   it('submit/cancel/decide/return rules', () => {

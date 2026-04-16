@@ -1,14 +1,15 @@
 // app/admin/AdminClient.tsx
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from '@/app/components/ui/ConfirmDialog'
 import { useToast } from '@/app/components/ui/ToastProvider'
 import { normalizeErrorMessage } from '@/lib/error'
 import {
   createRequestType,
   deleteRequestType,
+  inviteUser,
   renameRequestType,
   updateUserRoleDepartment,
 } from './actions'
@@ -23,18 +24,101 @@ type UserRow = {
   created_at: string
   updated_at: string
 }
-
 type RequestTypeSort = 'id-asc' | 'name-asc' | 'name-desc'
+
+type AdminAuditLogRow = {
+  id: number
+  actor_id: string
+  action: string
+  target_user_id: string | null
+  entity_type: string
+  entity_id: string | null
+  before_data: Record<string, unknown> | null
+  after_data: Record<string, unknown> | null
+  created_at: string
+}
+
+type ProfileMap = Record<
+  string,
+  {
+    name: string
+    role: Role
+    department: string
+  }
+>
 
 function normalizeTypeName(value: string) {
   return value.trim().toLowerCase()
 }
 
-export default function AdminClient(props: { requestTypes: RequestTypeRow[]; users: UserRow[] }) {
-  const { requestTypes, users } = props
+function actionLabel(action: string) {
+  switch (action) {
+    case 'INVITE_USER':
+      return 'ユーザー招待'
+    case 'UPDATE_USER_ROLE':
+      return '権限変更'
+    case 'UPDATE_USER_DEPARTMENT':
+      return '部署変更'
+    case 'CREATE_REQUEST_TYPE':
+      return '申請種別追加'
+    case 'RENAME_REQUEST_TYPE':
+      return '申請種別名変更'
+    case 'DELETE_REQUEST_TYPE':
+      return '申請種別削除'
+    default:
+      return action
+  }
+}
+
+function summarizeData(data: Record<string, unknown> | null | undefined) {
+  if (!data) return '—'
+
+  const entries = Object.entries(data)
+    .filter(([, value]) => value !== null && value !== undefined && String(value) !== '')
+    .slice(0, 4)
+
+  if (entries.length === 0) return '—'
+
+  return entries
+    .map(([key, value]) => `${key}: ${String(value)}`)
+    .join(' / ')
+}
+
+function targetLabel(
+  log: AdminAuditLogRow,
+  profileMap: ProfileMap
+) {
+  if (log.target_user_id) {
+    const p = profileMap[log.target_user_id]
+    return p ? `${p.name} (${p.role} / ${p.department})` : log.target_user_id
+  }
+
+  if (log.entity_type === 'request_types' && log.entity_id) {
+    const afterName =
+      typeof log.after_data?.name === 'string' ? log.after_data.name : null
+    const beforeName =
+      typeof log.before_data?.name === 'string' ? log.before_data.name : null
+    return afterName ?? beforeName ?? `request_type:${log.entity_id}`
+  }
+
+  return log.entity_id ?? log.entity_type
+}
+
+export default function AdminClient(props: {
+  requestTypes: RequestTypeRow[]
+  users: UserRow[]
+  auditLogs: AdminAuditLogRow[]
+  profileMap: ProfileMap
+}) {
+  const { requestTypes, users, auditLogs, profileMap } = props
   const { toast } = useToast()
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviteRole, setInviteRole] = useState<Role>('REQUESTER')
+  const [inviteDepartment, setInviteDepartment] = useState('')
 
   const [newTypeName, setNewTypeName] = useState('')
   const [rename, setRename] = useState<Record<number, string>>({})
@@ -82,12 +166,8 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
     })
 
     next.sort((a, b) => {
-      if (requestTypeSort === 'name-asc') {
-        return a.name.localeCompare(b.name, 'ja')
-      }
-      if (requestTypeSort === 'name-desc') {
-        return b.name.localeCompare(a.name, 'ja')
-      }
+      if (requestTypeSort === 'name-asc') return a.name.localeCompare(b.name, 'ja')
+      if (requestTypeSort === 'name-desc') return b.name.localeCompare(a.name, 'ja')
       return a.id - b.id
     })
 
@@ -102,11 +182,16 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
   const isDuplicateNewType =
     newTypeNameNormalized.length > 0 && existingTypeNameSet.has(newTypeNameNormalized)
 
-  const run = (fn: () => Promise<void>) => {
+  const canInvite =
+    inviteEmail.trim().length > 0 &&
+    inviteName.trim().length > 0 &&
+    inviteDepartment.trim().length > 0
+
+  const run = (fn: () => Promise<void>, successMessage = '更新しました') => {
     startTransition(async () => {
       try {
         await fn()
-        toast({ message: '更新しました' })
+        toast({ message: successMessage })
         router.refresh()
       } catch (e: unknown) {
         toast({ message: `エラー: ${normalizeErrorMessage(e)}` })
@@ -118,6 +203,101 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
 
   return (
     <div className="space-y-8">
+      <div className="card space-y-4">
+        <div className="font-semibold">ユーザー招待</div>
+        <div className="text-xs text-gray-600">
+          招待メールを送信し、同時に role / department を初期設定します。
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="admin-invite-email" className="label">
+              メールアドレス
+            </label>
+            <input
+              id="admin-invite-email"
+              className="input"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="user@example.com"
+              disabled={pending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="admin-invite-name" className="label">
+              氏名
+            </label>
+            <input
+              id="admin-invite-name"
+              className="input"
+              value={inviteName}
+              onChange={(e) => setInviteName(e.target.value)}
+              placeholder="山田 太郎"
+              disabled={pending}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="admin-invite-role" className="label">
+              Role
+            </label>
+            <select
+              id="admin-invite-role"
+              className="input"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as Role)}
+              disabled={pending}
+            >
+              <option value="REQUESTER">REQUESTER</option>
+              <option value="APPROVER">APPROVER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="admin-invite-department" className="label">
+              Department
+            </label>
+            <input
+              id="admin-invite-department"
+              className="input"
+              value={inviteDepartment}
+              onChange={(e) => setInviteDepartment(e.target.value)}
+              placeholder="SALES"
+              disabled={pending}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            className="btn btn-primary"
+            disabled={pending || !canInvite}
+            onClick={() =>
+              run(
+                async () => {
+                  await inviteUser({
+                    email: inviteEmail,
+                    name: inviteName,
+                    role: inviteRole,
+                    department: inviteDepartment,
+                  })
+                  setInviteEmail('')
+                  setInviteName('')
+                  setInviteRole('REQUESTER')
+                  setInviteDepartment('')
+                },
+                '招待メールを送信しました'
+              )
+            }
+          >
+            {pending ? '処理中...' : '招待メール送信'}
+          </button>
+        </div>
+      </div>
+
       <div className="card space-y-4">
         <div className="font-semibold">申請種別マスタ（request_types）</div>
 
@@ -278,7 +458,7 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
       <div className="card space-y-4">
         <div className="font-semibold">ユーザー権限・部署（profiles）</div>
         <div className="text-xs text-gray-600">
-          ※ role/department は ADMIN のみ変更できます（DBトリガー/ポリシー）。
+          ※ role / department は ADMIN のみ変更できます。
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
@@ -417,6 +597,62 @@ export default function AdminClient(props: { requestTypes: RequestTypeRow[]; use
           {filteredUsers.length === 0 && (
             <div className="rounded border p-3 bg-white text-sm text-gray-600">
               一致するユーザーはいません。
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card space-y-4">
+        <div className="font-semibold">管理操作監査ログ（最新20件）</div>
+        <div className="text-xs text-gray-600">
+          招待、権限変更、部署変更、申請種別の追加・変更・削除を記録します。
+        </div>
+
+        <div className="space-y-2">
+          {auditLogs.map((log) => {
+            const actor = profileMap[log.actor_id]
+            const actorText = actor
+              ? `${actor.name} (${actor.role} / ${actor.department})`
+              : log.actor_id
+
+            return (
+              <div key={log.id} className="rounded border p-3 bg-white space-y-2">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="space-y-1">
+                    <div className="font-medium">{actionLabel(log.action)}</div>
+                    <div className="text-xs text-gray-600">実行者: {actorText}</div>
+                    <div className="text-xs text-gray-600">
+                      対象: {targetLabel(log, profileMap)}
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    {new Date(log.created_at).toLocaleString('ja-JP')}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="rounded border p-2 bg-gray-50">
+                    <div className="font-medium text-gray-700 mb-1">Before</div>
+                    <div className="text-gray-600 whitespace-pre-wrap">
+                      {summarizeData(log.before_data)}
+                    </div>
+                  </div>
+
+                  <div className="rounded border p-2 bg-gray-50">
+                    <div className="font-medium text-gray-700 mb-1">After</div>
+                    <div className="text-gray-600 whitespace-pre-wrap">
+                      {summarizeData(log.after_data)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {auditLogs.length === 0 && (
+            <div className="rounded border p-3 bg-white text-sm text-gray-600">
+              監査ログはまだありません。
             </div>
           )}
         </div>

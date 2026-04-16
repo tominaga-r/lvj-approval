@@ -5,7 +5,7 @@
 --   - 20260409_phase2_returned_enum.sql
 --   - 20260409_phase2_returned_workflow.sql
 -- Optional but recommended before this migration:
---   - 20260410_phase3_admin_permission_review.sql
+--   - 20260415_phase3_admin_permission_review.sql
 -- Purpose:
 --   - Require comment for RETURN
 --   - Require comment for REJECT

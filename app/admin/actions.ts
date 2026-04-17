@@ -2,30 +2,21 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
 import { requireRole } from '@/lib/authz'
-import { createSupabaseAdminClient } from '@/lib/supabaseAdmin'
 import { writeAdminAuditLog } from '@/lib/adminAudit'
-
-const requestTypeNameSchema = z.string().trim().min(1, '申請種別名は必須です').max(100, '申請種別名が長すぎます')
-
-const updateUserSchema = z.object({
-  userId: z.string().uuid('不正なユーザーIDです'),
-  role: z.enum(['REQUESTER', 'APPROVER', 'ADMIN']),
-  department: z.string().trim().min(1, '部署は必須です').max(100, '部署が長すぎます'),
-})
-
-const inviteUserSchema = z.object({
-  email: z.email('メールアドレス形式が不正です').transform((v) => v.trim().toLowerCase()),
-  name: z.string().trim().min(1, '氏名は必須です').max(100, '氏名が長すぎます'),
-  role: z.enum(['REQUESTER', 'APPROVER', 'ADMIN']),
-  department: z.string().trim().min(1, '部署は必須です').max(100, '部署が長すぎます'),
-})
+import { createSupabaseAdminClient } from '@/lib/supabaseAdmin'
+import {
+  departmentSchema,
+  inviteUserSchema,
+  requestTypeNameSchema,
+  roleSchema,
+  updateUserRoleDepartmentSchema,
+} from '@/lib/validation'
 
 export async function createRequestType(name: string) {
   const { profile } = await requireRole(['ADMIN'])
   const parsed = requestTypeNameSchema.safeParse(name)
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'validation error')
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'invalid')
 
   const admin = createSupabaseAdminClient()
 
@@ -52,7 +43,7 @@ export async function createRequestType(name: string) {
 export async function renameRequestType(id: number, name: string) {
   const { profile } = await requireRole(['ADMIN'])
   const parsed = requestTypeNameSchema.safeParse(name)
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'validation error')
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'invalid')
 
   const admin = createSupabaseAdminClient()
 
@@ -99,7 +90,13 @@ export async function deleteRequestType(id: number) {
   if (beforeError) throw new Error(beforeError.message)
 
   const { error } = await admin.from('request_types').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  if (error) {
+    const msg = String((error as { message?: unknown })?.message ?? error)
+    if (msg.includes('violates foreign key constraint') || msg.includes('23503')) {
+      throw new Error('この種別は申請で使用されているため削除できません。')
+    }
+    throw new Error(msg)
+  }
 
   await writeAdminAuditLog({
     actorId: profile.id,
@@ -119,8 +116,8 @@ export async function updateUserRoleDepartment(
   department: string
 ) {
   const { profile } = await requireRole(['ADMIN'])
-  const parsed = updateUserSchema.safeParse({ userId, role, department })
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'validation error')
+  const parsed = updateUserRoleDepartmentSchema.safeParse({ userId, role, department })
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'invalid')
 
   const admin = createSupabaseAdminClient()
 
@@ -170,8 +167,8 @@ export async function updateUserRoleDepartment(
 
   revalidatePath('/admin')
   revalidatePath('/dashboard')
-  revalidatePath('/requests')
   revalidatePath('/approvals')
+  revalidatePath('/requests')
 }
 
 export async function inviteUser(input: {
@@ -183,7 +180,7 @@ export async function inviteUser(input: {
   const { profile } = await requireRole(['ADMIN'])
 
   const parsed = inviteUserSchema.safeParse(input)
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'validation error')
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'invalid')
 
   const admin = createSupabaseAdminClient()
 

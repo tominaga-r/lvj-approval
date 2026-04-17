@@ -1,13 +1,20 @@
 // app/api/auth/reset-password/route.ts
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { z } from 'zod'
+import { createSupabaseServerClient } from '@/lib/supabaseServer'
 import { passwordResetSchema } from '@/lib/validation'
+import { rejectIfNotJson, rejectIfNotLikelySameSite } from '@/lib/requestGuards'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function POST(req: Request) {
+  const sameSiteError = rejectIfNotLikelySameSite(req)
+  if (sameSiteError) return sameSiteError
+
+  const jsonError = rejectIfNotJson(req)
+  if (jsonError) return jsonError
+
   const json = await req.json().catch(() => null)
   const parsed = passwordResetSchema.safeParse(json)
 

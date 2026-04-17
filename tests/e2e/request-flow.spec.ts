@@ -48,6 +48,9 @@ test.describe('request flow', () => {
     await first.click()
     await expect(page).toHaveURL(/\/requests\/[0-9a-f-]+/)
 
+    await page
+      .getByLabel('コメント（差し戻し・却下は必須）')
+      .fill('差し戻し理由: 内容を修正してください')
     await page.getByRole('button', { name: '差し戻し' }).click()
     await page.getByRole('button', { name: /実行/i }).click()
     await expect(page.getByText(/操作が完了しました/)).toBeVisible()

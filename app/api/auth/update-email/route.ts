@@ -1,54 +1,34 @@
 // app/api/auth/update-email/route.ts
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabaseServer'
-
-function isLikelySameSite(req: Request): boolean {
-  // Refererが無いケースもある（ブラウザ設定/一部環境/preview）
-  const ref = req.headers.get('referer')
-  if (!ref) return true
-
-  try {
-    const refUrl = new URL(ref)
-    const reqUrl = new URL(req.url)
-    return refUrl.host === reqUrl.host
-  } catch {
-    return true
-  }
-}
+import { updateEmailSchema } from '@/lib/validation'
+import { rejectIfNotJson, rejectIfNotLikelySameSite } from '@/lib/requestGuards'
 
 export async function POST(req: Request) {
-  // 軽いSame-siteチェック（Origin allowlistは持たない）
-  if (!isLikelySameSite(req)) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-  }
+  const sameSiteError = rejectIfNotLikelySameSite(req)
+  if (sameSiteError) return sameSiteError
 
-  // JSONのみ受け付け
-  const contentType = req.headers.get('content-type') ?? ''
-  if (!contentType.includes('application/json')) {
-    return NextResponse.json({ error: 'invalid content-type' }, { status: 400 })
-  }
+  const jsonError = rejectIfNotJson(req)
+  if (jsonError) return jsonError
 
   const supabase = await createSupabaseServerClient()
 
-  // ログイン必須（cookieセッション）
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  let body: any = null
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  const parsed = updateEmailSchema.safeParse(body)
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'invalid body' },
+      { status: 400 }
+    )
   }
 
-  const newEmail = String(body?.newEmail ?? '').trim().toLowerCase()
-  if (!newEmail) {
-    return NextResponse.json({ error: 'newEmail is required' }, { status: 400 })
-  }
-  
-  const { error } = await supabase.auth.updateUser({ email: newEmail })
+  const { error } = await supabase.auth.updateUser({ email: parsed.data.newEmail })
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }

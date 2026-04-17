@@ -2,7 +2,7 @@
 'use server'
 
 import { requireRole } from '@/lib/authz'
-import { parseOptionalRequestAmount } from '@/lib/validation'
+import { parseOptionalRequestAmount, requestInputSchema } from '@/lib/validation'
 
 export type CreateRequestInput = {
   typeId: number
@@ -19,14 +19,19 @@ export async function createDraftRequest(input: CreateRequestInput) {
     throw new Error('profiles.department not found')
   }
 
-  const amountNum = parseOptionalRequestAmount(input.amount)
+  const parsed = requestInputSchema.safeParse(input)
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? '入力が不正です')
+  }
+
+  const amountNum = parseOptionalRequestAmount(parsed.data.amount)
 
   const insertPayload = {
-    type_id: input.typeId,
-    title: input.title.trim(),
-    description: input.description.trim(),
+    type_id: parsed.data.typeId,
+    title: parsed.data.title,
+    description: parsed.data.description,
     amount: amountNum,
-    needed_by: input.neededBy && input.neededBy !== '' ? input.neededBy : null,
+    needed_by: parsed.data.neededBy,
     requester_id: user.id,
     department: profile.department,
   }

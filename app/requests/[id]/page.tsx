@@ -1,5 +1,4 @@
 // app/requests/[id]/page.tsx
-
 import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
 import { RequestActionsPanel } from './RequestActionsPanel'
@@ -45,11 +44,11 @@ export default async function RequestDetailPage({ params }: Props) {
 
   if (reqErr || !reqRow) {
     return (
-      <div className="max-w-3xl mx-auto p-6 space-y-3">
-        <div className="text-red-600">
+      <div className="max-w-3xl mx-auto p-6">
+        <div className="text-red-600 mb-4">
           申請が見つからない/権限がありません: {reqErr?.message ?? 'unknown'}
         </div>
-        <Link className="underline" href="/requests">
+        <Link href="/requests" className="underline">
           申請一覧へ戻る
         </Link>
       </div>
@@ -74,9 +73,33 @@ export default async function RequestDetailPage({ params }: Props) {
     .eq('request_id', reqRow.id)
     .order('created_at', { ascending: false })
 
-const canEditDraft =
-  (reqRow.status === 'DRAFT' || reqRow.status === 'RETURNED') &&
-  me.id === reqRow.requester_id
+  const actorIds = Array.from(
+    new Set((actions ?? []).map((a) => a.actor_id).filter((v): v is string => typeof v === 'string' && v.length > 0))
+  )
+
+  let actorNameMap: Record<string, { name: string; role: string; department: string }> = {}
+
+  if (actorIds.length > 0) {
+    const { data: actorProfiles } = await supabase
+      .from('profiles')
+      .select('id, name, role, department')
+      .in('id', actorIds)
+
+    actorNameMap = Object.fromEntries(
+      (actorProfiles ?? []).map((p) => [
+        p.id,
+        {
+          name: p.name,
+          role: p.role,
+          department: p.department,
+        },
+      ])
+    )
+  }
+
+  const canEditDraft =
+    (reqRow.status === 'DRAFT' || reqRow.status === 'RETURNED') &&
+    me.id === reqRow.requester_id
 
   let typesForEdit: { id: number; name: string }[] = []
   if (canEditDraft) {
@@ -89,57 +112,41 @@ const canEditDraft =
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">申請詳細</h1>
-        <Link href="/requests" className="underline text-sm">
+      <h1 className="text-xl font-bold">申請詳細</h1>
+
+      <div className="text-sm">
+        <Link href="/requests" className="underline">
           一覧へ戻る
         </Link>
       </div>
 
       <div className="card space-y-2">
-        <div className="text-sm text-gray-600">
-          種別: <span className="text-gray-900">{typeRow?.name ?? `type_id=${reqRow.type_id}`}</span>
-        </div>
-
-        <div className="text-sm text-gray-600">
-          申請者: <span className="text-gray-900">{requesterProfile?.name ?? reqRow.requester_id}</span>
+        <div>種別: {typeRow?.name ?? `type_id=${reqRow.type_id}`}</div>
+        <div>
+          申請者: {requesterProfile?.name ?? reqRow.requester_id}
           {requesterProfile?.department ? ` / ${requesterProfile.department}` : ''}
         </div>
-
-        <div className="text-sm text-gray-600">
-          部署: <span className="text-gray-900">{reqRow.department}</span>
-        </div>
-
-        <div className="text-sm text-gray-600">
-          ステータス: <span className="text-gray-900 font-semibold">{reqRow.status}</span>
-        </div>
-
-        <div className="pt-2">
-          <div className="font-semibold">{reqRow.title}</div>
-          <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">{reqRow.description}</div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm pt-2">
-          <div className="rounded border p-2 bg-white">金額: {formatAmount(reqRow.amount)}</div>
-          <div className="rounded border p-2 bg-white">希望日: {reqRow.needed_by ?? '-'}</div>
-          <div className="rounded border p-2 bg-white">
-            更新: {new Date(reqRow.updated_at).toLocaleString('ja-JP')}
-          </div>
-        </div>
+        <div>部署: {reqRow.department}</div>
+        <div>ステータス: {reqRow.status}</div>
+        <div className="font-semibold">{reqRow.title}</div>
+        <div className="whitespace-pre-wrap">{reqRow.description}</div>
+        <div>金額: {formatAmount(reqRow.amount)}</div>
+        <div>希望日: {reqRow.needed_by ?? '-'}</div>
+        <div>更新: {new Date(reqRow.updated_at).toLocaleString('ja-JP')}</div>
       </div>
 
       {canEditDraft && (
-        <EditDraftForm
-          requestId={reqRow.id}
-          types={typesForEdit}
-          initial={{
-            type_id: reqRow.type_id,
-            title: reqRow.title ?? '',
-            description: reqRow.description ?? '',
-            amount: reqRow.amount != null ? String(reqRow.amount) : '',
-            needed_by: reqRow.needed_by ? String(reqRow.needed_by) : '',
-          }}
-        />
+      <EditDraftForm
+        requestId={reqRow.id}
+        initial={{
+          type_id: reqRow.type_id,
+          title: reqRow.title,
+          description: reqRow.description,
+          amount: reqRow.amount != null ? String(reqRow.amount) : '',
+          needed_by: reqRow.needed_by ?? '',
+        }}
+        types={typesForEdit}
+      />
       )}
 
       <RequestActionsPanel
@@ -149,26 +156,33 @@ const canEditDraft =
         myRole={me.role}
       />
 
-      <div className="card">
-        <div className="font-semibold mb-2">履歴</div>
+      <div className="card space-y-3">
+        <h2 className="font-semibold">履歴</h2>
 
-        <div className="space-y-2 text-sm">
-          {(actions ?? []).length === 0 && (
-            <div className="text-gray-500">履歴はまだありません</div>
-          )}
+        {(actions ?? []).length === 0 && (
+          <div className="text-sm text-gray-600">履歴はまだありません</div>
+        )}
 
-          {(actions ?? []).map((a) => (
-            <div key={a.id} className="rounded border p-2 bg-white">
-              <div className="text-gray-700">
-                <span className="font-semibold">{actionLabel(a.action)}</span>
-                <span className="text-gray-500"> / {new Date(a.created_at).toLocaleString('ja-JP')}</span>
+        {(actions ?? []).map((a) => {
+          const actor = actorNameMap[a.actor_id]
+          const actorText = actor
+            ? `${actor.name} (${actor.role} / ${actor.department})`
+            : a.actor_id
+
+          return (
+            <div key={a.id} className="rounded border p-3 bg-white space-y-1">
+              <div className="text-sm font-medium">
+                {actionLabel(a.action)} / {new Date(a.created_at).toLocaleString('ja-JP')}
               </div>
+              <div className="text-xs text-gray-600">実行者: {actorText}</div>
               {a.comment && (
-                <div className="mt-1 text-gray-800 whitespace-pre-wrap">{a.comment}</div>
+                <div className="text-sm whitespace-pre-wrap rounded bg-gray-50 p-2">
+                  {a.comment}
+                </div>
               )}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
     </div>
   )

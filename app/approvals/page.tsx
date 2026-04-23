@@ -53,6 +53,10 @@ function hasAnyComment(
   })
 }
 
+function countByStatus<T extends { status: string }>(rows: T[], status: string) {
+  return rows.filter((r) => r.status === status).length
+}
+
 export default async function ApprovalsPage({ searchParams }: Props) {
   const { supabase, profile } = await requireRole(['APPROVER', 'ADMIN'])
   const resolved = await searchParams
@@ -65,7 +69,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
   const sort = resolved.sort === 'oldest' ? 'oldest' : 'newest'
   const status = (resolved.status ?? 'SUBMITTED').trim() as ApprovalStatus
   const mine = resolved.mine === '1'
-  const hasComment = (resolved.hasComment ?? '').trim() // '', 'yes', 'no'
+  const hasComment = (resolved.hasComment ?? '').trim()
 
   const heading =
     status === 'SUBMITTED'
@@ -122,6 +126,15 @@ export default async function ApprovalsPage({ searchParams }: Props) {
       : hasComment === 'no'
         ? (rows ?? []).filter((r) => !hasAnyComment(r))
         : (rows ?? [])
+
+  const summary = {
+    total: filteredRows.length,
+    submitted: countByStatus(filteredRows, 'SUBMITTED'),
+    returned: countByStatus(filteredRows, 'RETURNED'),
+    approved: countByStatus(filteredRows, 'APPROVED'),
+    rejected: countByStatus(filteredRows, 'REJECTED'),
+    cancelled: countByStatus(filteredRows, 'CANCELLED'),
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-4">
@@ -237,11 +250,38 @@ export default async function ApprovalsPage({ searchParams }: Props) {
         </div>
       </form>
 
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">表示件数</div>
+          <div className="text-2xl font-bold">{summary.total}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">SUBMITTED</div>
+          <div className="text-2xl font-bold">{summary.submitted}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">RETURNED</div>
+          <div className="text-2xl font-bold">{summary.returned}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">APPROVED</div>
+          <div className="text-2xl font-bold">{summary.approved}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">REJECTED</div>
+          <div className="text-2xl font-bold">{summary.rejected}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">CANCELLED</div>
+          <div className="text-2xl font-bold">{summary.cancelled}</div>
+        </div>
+      </div>
+
       <div className="text-sm text-gray-600">
-        表示件数: {filteredRows.length}
-        {mine ? ' / 自分が処理した案件のみ表示中' : ''}
-        {hasComment === 'yes' ? ' / コメントありのみ表示中' : ''}
-        {hasComment === 'no' ? ' / コメントなしのみ表示中' : ''}
+        {mine ? '自分が処理した案件のみ表示中 / ' : ''}
+        {hasComment === 'yes' ? 'コメントありのみ表示中 / ' : ''}
+        {hasComment === 'no' ? 'コメントなしのみ表示中 / ' : ''}
+        現在の絞り込み結果に対する件数を表示しています。
       </div>
 
       <div className="space-y-2">
@@ -256,9 +296,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
                   <span className="chip">種別: {getTypeName(r)}</span>
                   <span className="chip">金額: {formatAmount(r.amount)}</span>
                   <span className="chip">希望日: {r.needed_by ?? '-'}</span>
-                  <span className="chip">
-                    コメント: {hasAnyComment(r) ? 'あり' : 'なし'}
-                  </span>
+                  <span className="chip">コメント: {hasAnyComment(r) ? 'あり' : 'なし'}</span>
                 </div>
               </div>
 

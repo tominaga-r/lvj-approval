@@ -66,6 +66,10 @@ function toNextDateStart(value: string) {
   return `${y}-${m}-${d}T00:00:00.000+09:00`
 }
 
+function countByStatus<T extends { status: string }>(rows: T[], status: string) {
+  return rows.filter((r) => r.status === status).length
+}
+
 export default async function RequestsPage({ searchParams }: Props) {
   const { supabase, profile } = await requireProfile()
   const canCreate = canCreateRequest(profile.role)
@@ -118,6 +122,17 @@ export default async function RequestsPage({ searchParams }: Props) {
 
   if (error) {
     return <div className="p-6 text-red-600">requests取得エラー: {error.message}</div>
+  }
+
+  const list = rows ?? []
+  const summary = {
+    total: list.length,
+    draft: countByStatus(list, 'DRAFT'),
+    submitted: countByStatus(list, 'SUBMITTED'),
+    returned: countByStatus(list, 'RETURNED'),
+    approved: countByStatus(list, 'APPROVED'),
+    rejected: countByStatus(list, 'REJECTED'),
+    cancelled: countByStatus(list, 'CANCELLED'),
   }
 
   return (
@@ -212,12 +227,39 @@ export default async function RequestsPage({ searchParams }: Props) {
         </div>
       </form>
 
-      <div className="text-sm text-gray-600">
-        表示件数: {(rows ?? []).length}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">表示件数</div>
+          <div className="text-2xl font-bold">{summary.total}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">DRAFT</div>
+          <div className="text-2xl font-bold">{summary.draft}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">SUBMITTED</div>
+          <div className="text-2xl font-bold">{summary.submitted}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">RETURNED</div>
+          <div className="text-2xl font-bold">{summary.returned}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">APPROVED</div>
+          <div className="text-2xl font-bold">{summary.approved}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">REJECTED</div>
+          <div className="text-2xl font-bold">{summary.rejected}</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-xs text-gray-500">CANCELLED</div>
+          <div className="text-2xl font-bold">{summary.cancelled}</div>
+        </div>
       </div>
 
       <div className="space-y-2">
-        {(rows ?? []).map((r) => (
+        {list.map((r) => (
           <Link key={r.id} href={`/requests/${r.id}`} className="block card hover:bg-gray-50">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="space-y-2">
@@ -244,7 +286,7 @@ export default async function RequestsPage({ searchParams }: Props) {
           </Link>
         ))}
 
-        {(rows ?? []).length === 0 && (
+        {list.length === 0 && (
           <div className="text-sm text-gray-600">条件に一致する申請がありません。</div>
         )}
       </div>

@@ -2,48 +2,158 @@
 import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
 import { canCreateRequest } from '@/lib/permissions'
+import { formatAmount } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
+type RequestRow = {
+  id: string
+  status: 'DRAFT' | 'SUBMITTED' | 'RETURNED' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  amount: number | null
+  created_at: string
+}
+
+function startOfDaysAgo(days: number) {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  now.setDate(now.getDate() - days + 1)
+  return now
+}
+
+function sumAmount(rows: RequestRow[]) {
+  return rows.reduce((sum, row) => sum + (row.amount ?? 0), 0)
+}
+
+function sumApprovedAmount(rows: RequestRow[]) {
+  return rows.reduce((sum, row) => {
+    if (row.status !== 'APPROVED') return sum
+    return sum + (row.amount ?? 0)
+  }, 0)
+}
+
+function countByStatus(rows: RequestRow[], status: RequestRow['status']) {
+  return rows.filter((row) => row.status === status).length
+}
+
+function StatCard(props: {
+  title: string
+  count: number
+  totalAmount: number
+  approvedAmount: number
+}) {
+  const { title, count, totalAmount, approvedAmount } = props
+
+  return (
+    <div className="card space-y-2">
+      <div className="text-sm text-gray-500">{title}</div>
+      <div className="text-2xl font-bold">{count}件</div>
+      <div className="text-sm text-gray-700">金額合計: {formatAmount(totalAmount)}</div>
+      <div className="text-sm text-gray-700">承認済み金額: {formatAmount(approvedAmount)}</div>
+    </div>
+  )
+}
+
 export default async function DashboardPage() {
-  const { profile } = await requireProfile()
+  const { supabase, profile } = await requireProfile()
 
   const isAdmin = profile.role === 'ADMIN'
   const isApprover = profile.role === 'APPROVER'
   const canCreate = canCreateRequest(profile.role)
 
-  return (
-    <div className="max-w-2xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">申請・承認ダッシュボード</h1>
+  const { data: rows, error } = await supabase
+    .from('requests')
+    .select('id, status, amount, created_at')
+    .order('created_at', { ascending: false })
 
-      <div className="rounded border p-4 bg-white">
-        <div>名前: {profile.name}</div>
-        <div>ロール: {profile.role}</div>
-        <div>部署: {profile.department}</div>
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 text-red-600">
+        ダッシュボード集計エラー: {error.message}
+      </div>
+    )
+  }
+
+  const allRows = (rows ?? []) as RequestRow[]
+  const start7 = startOfDaysAgo(7)
+  const start30 = startOfDaysAgo(30)
+
+  const last7Rows = allRows.filter((row) => new Date(row.created_at) >= start7)
+  const last30Rows = allRows.filter((row) => new Date(row.created_at) >= start30)
+
+  const pendingCount = countByStatus(allRows, 'SUBMITTED')
+  const returnedCount = countByStatus(allRows, 'RETURNED')
+  const approvedCount = countByStatus(allRows, 'APPROVED')
+
+  return (
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">申請・承認ダッシュボード</h1>
+        <div className="text-sm text-gray-700">名前: {profile.name}</div>
+        <div className="text-sm text-gray-700">ロール: {profile.role}</div>
+        <div className="text-sm text-gray-700">部署: {profile.department}</div>
       </div>
 
-      <div className="flex gap-3 flex-wrap">
-        <Link className="btn btn-primary" href="/requests">
-          申請一覧
-        </Link>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          title="直近7日"
+          count={last7Rows.length}
+          totalAmount={sumAmount(last7Rows)}
+          approvedAmount={sumApprovedAmount(last7Rows)}
+        />
+        <StatCard
+          title="直近30日"
+          count={last30Rows.length}
+          totalAmount={sumAmount(last30Rows)}
+          approvedAmount={sumApprovedAmount(last30Rows)}
+        />
+        <StatCard
+          title="全期間"
+          count={allRows.length}
+          totalAmount={sumAmount(allRows)}
+          approvedAmount={sumApprovedAmount(allRows)}
+        />
+      </div>
 
-        {canCreate && (
-          <Link className="btn btn-secondary" href="/requests/new">
-            新規申請（下書き）
-          </Link>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card space-y-1">
+          <div className="text-sm text-gray-500">承認待ち</div>
+          <div className="text-2xl font-bold">{pendingCount}件</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-sm text-gray-500">差し戻し</div>
+          <div className="text-2xl font-bold">{returnedCount}件</div>
+        </div>
+        <div className="card space-y-1">
+          <div className="text-sm text-gray-500">承認済み</div>
+          <div className="text-2xl font-bold">{approvedCount}件</div>
+        </div>
+      </div>
 
-        {(isApprover || isAdmin) && (
-          <Link className="btn btn-secondary" href="/approvals">
-            承認待ち
+      <div className="card space-y-3">
+        <div className="font-semibold">メニュー</div>
+        <div className="flex gap-3 flex-wrap">
+          <Link href="/requests" className="btn btn-secondary">
+            申請一覧
           </Link>
-        )}
 
-        {isAdmin && (
-          <Link className="btn btn-ghost" href="/admin">
-            管理
-          </Link>
-        )}
+          {canCreate && (
+            <Link href="/requests/new" className="btn btn-secondary">
+              新規申請（下書き）
+            </Link>
+          )}
+
+          {(isApprover || isAdmin) && (
+            <Link href="/approvals" className="btn btn-secondary">
+              承認待ち
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link href="/admin" className="btn btn-secondary">
+              管理
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   )

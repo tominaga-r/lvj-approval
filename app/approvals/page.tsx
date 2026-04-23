@@ -13,6 +13,8 @@ type Props = {
     status?: string
     from?: string
     to?: string
+    mine?: string
+    hasComment?: string
   }>
 }
 
@@ -40,6 +42,17 @@ function toNextDateStart(value: string) {
   return `${y}-${m}-${d}T00:00:00.000+09:00`
 }
 
+function hasAnyComment(
+  row: {
+    request_actions?: { comment?: string | null }[] | null
+  }
+) {
+  return (row.request_actions ?? []).some((a) => {
+    const comment = a.comment?.trim() ?? ''
+    return comment.length > 0
+  })
+}
+
 export default async function ApprovalsPage({ searchParams }: Props) {
   const { supabase, profile } = await requireRole(['APPROVER', 'ADMIN'])
   const resolved = await searchParams
@@ -51,6 +64,8 @@ export default async function ApprovalsPage({ searchParams }: Props) {
   const to = (resolved.to ?? '').trim()
   const sort = resolved.sort === 'oldest' ? 'oldest' : 'newest'
   const status = (resolved.status ?? 'SUBMITTED').trim() as ApprovalStatus
+  const mine = resolved.mine === '1'
+  const hasComment = (resolved.hasComment ?? '').trim() // '', 'yes', 'no'
 
   const heading =
     status === 'SUBMITTED'
@@ -61,7 +76,9 @@ export default async function ApprovalsPage({ searchParams }: Props) {
 
   let query = supabase
     .from('requests')
-    .select('id, title, status, department, created_at, amount, needed_by, request_types(name)')
+    .select(
+      'id, title, status, department, created_at, amount, needed_by, approver_id, request_types(name), request_actions(comment)'
+    )
 
   if (status) {
     query = query.eq('status', status)
@@ -83,6 +100,10 @@ export default async function ApprovalsPage({ searchParams }: Props) {
     query = query.lt('created_at', toNextDateStart(to))
   }
 
+  if (mine) {
+    query = query.eq('approver_id', profile.id)
+  }
+
   query = query.order('created_at', { ascending: sort === 'oldest' })
 
   const { data: rows, error } = await query
@@ -94,6 +115,13 @@ export default async function ApprovalsPage({ searchParams }: Props) {
       </div>
     )
   }
+
+  const filteredRows =
+    hasComment === 'yes'
+      ? (rows ?? []).filter((r) => hasAnyComment(r))
+      : hasComment === 'no'
+        ? (rows ?? []).filter((r) => !hasAnyComment(r))
+        : (rows ?? [])
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-4">
@@ -170,6 +198,35 @@ export default async function ApprovalsPage({ searchParams }: Props) {
           </select>
         </div>
 
+        <div>
+          <label htmlFor="approvals-hasComment" className="label">
+            コメント有無
+          </label>
+          <select
+            id="approvals-hasComment"
+            name="hasComment"
+            className="input"
+            defaultValue={hasComment}
+          >
+            <option value="">すべて</option>
+            <option value="yes">コメントあり</option>
+            <option value="no">コメントなし</option>
+          </select>
+        </div>
+
+        <div className="sm:col-span-5">
+          <label htmlFor="approvals-mine" className="inline-flex items-center gap-2 text-sm pt-8">
+            <input
+              id="approvals-mine"
+              name="mine"
+              type="checkbox"
+              value="1"
+              defaultChecked={mine}
+            />
+            自分が処理した案件のみ
+          </label>
+        </div>
+
         <div className="sm:col-span-6 flex gap-2">
           <button type="submit" className="btn btn-primary">
             絞り込む
@@ -181,11 +238,14 @@ export default async function ApprovalsPage({ searchParams }: Props) {
       </form>
 
       <div className="text-sm text-gray-600">
-        表示件数: {(rows ?? []).length}
+        表示件数: {filteredRows.length}
+        {mine ? ' / 自分が処理した案件のみ表示中' : ''}
+        {hasComment === 'yes' ? ' / コメントありのみ表示中' : ''}
+        {hasComment === 'no' ? ' / コメントなしのみ表示中' : ''}
       </div>
 
       <div className="space-y-2">
-        {(rows ?? []).map((r) => (
+        {filteredRows.map((r) => (
           <Link key={r.id} href={`/requests/${r.id}`} className="block card hover:bg-gray-50">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="space-y-2">
@@ -196,6 +256,9 @@ export default async function ApprovalsPage({ searchParams }: Props) {
                   <span className="chip">種別: {getTypeName(r)}</span>
                   <span className="chip">金額: {formatAmount(r.amount)}</span>
                   <span className="chip">希望日: {r.needed_by ?? '-'}</span>
+                  <span className="chip">
+                    コメント: {hasAnyComment(r) ? 'あり' : 'なし'}
+                  </span>
                 </div>
               </div>
 
@@ -205,7 +268,8 @@ export default async function ApprovalsPage({ searchParams }: Props) {
             </div>
           </Link>
         ))}
-        {(rows ?? []).length === 0 && (
+
+        {filteredRows.length === 0 && (
           <div className="text-sm text-gray-600">条件に一致する申請はありません。</div>
         )}
       </div>

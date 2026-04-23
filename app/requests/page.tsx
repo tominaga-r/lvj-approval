@@ -12,6 +12,8 @@ type Props = {
     status?: string
     typeId?: string
     sort?: string
+    from?: string
+    to?: string
   }>
 }
 
@@ -51,6 +53,19 @@ function getTypeName(row: {
   return row.request_types?.name ?? '-'
 }
 
+function toDateStart(value: string) {
+  return `${value}T00:00:00.000+09:00`
+}
+
+function toNextDateStart(value: string) {
+  const base = new Date(`${value}T00:00:00+09:00`)
+  base.setDate(base.getDate() + 1)
+  const y = base.getFullYear()
+  const m = String(base.getMonth() + 1).padStart(2, '0')
+  const d = String(base.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}T00:00:00.000+09:00`
+}
+
 export default async function RequestsPage({ searchParams }: Props) {
   const { supabase, profile } = await requireProfile()
   const canCreate = canCreateRequest(profile.role)
@@ -59,6 +74,8 @@ export default async function RequestsPage({ searchParams }: Props) {
   const q = (resolved.q ?? '').trim()
   const status = (resolved.status ?? '').trim()
   const typeId = (resolved.typeId ?? '').trim()
+  const from = (resolved.from ?? '').trim()
+  const to = (resolved.to ?? '').trim()
   const sort = resolved.sort === 'oldest' ? 'oldest' : 'newest'
 
   const { data: types } = await supabase
@@ -87,6 +104,14 @@ export default async function RequestsPage({ searchParams }: Props) {
     }
   }
 
+  if (from) {
+    query = query.gte('created_at', toDateStart(from))
+  }
+
+  if (to) {
+    query = query.lt('created_at', toNextDateStart(to))
+  }
+
   query = query.order('created_at', { ascending: sort === 'oldest' })
 
   const { data: rows, error } = await query
@@ -110,7 +135,7 @@ export default async function RequestsPage({ searchParams }: Props) {
         あなたの部署: {profile.department} / ロール: {profile.role}
       </div>
 
-      <form className="card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <form className="card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="lg:col-span-2">
           <label htmlFor="requests-q" className="label">
             キーワード
@@ -154,6 +179,20 @@ export default async function RequestsPage({ searchParams }: Props) {
         </div>
 
         <div>
+          <label htmlFor="requests-from" className="label">
+            開始日
+          </label>
+          <input id="requests-from" name="from" type="date" className="input" defaultValue={from} />
+        </div>
+
+        <div>
+          <label htmlFor="requests-to" className="label">
+            終了日
+          </label>
+          <input id="requests-to" name="to" type="date" className="input" defaultValue={to} />
+        </div>
+
+        <div>
           <label htmlFor="requests-sort" className="label">
             並び順
           </label>
@@ -163,7 +202,7 @@ export default async function RequestsPage({ searchParams }: Props) {
           </select>
         </div>
 
-        <div className="sm:col-span-2 lg:col-span-5 flex gap-2">
+        <div className="sm:col-span-2 lg:col-span-6 flex gap-2">
           <button type="submit" className="btn btn-primary">
             絞り込む
           </button>
@@ -172,6 +211,10 @@ export default async function RequestsPage({ searchParams }: Props) {
           </Link>
         </div>
       </form>
+
+      <div className="text-sm text-gray-600">
+        表示件数: {(rows ?? []).length}
+      </div>
 
       <div className="space-y-2">
         {(rows ?? []).map((r) => (

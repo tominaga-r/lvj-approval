@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { requireRole } from '@/lib/authz'
 import { formatAmount } from '@/lib/format'
+import { getStatusChipClass } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -291,7 +292,13 @@ export default async function ApprovalsPage({ searchParams }: Props) {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="space-y-2 min-w-0">
                   <div className="flex gap-2 flex-wrap items-center">
-                    <span className="chip">{r.status}</span>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusChipClass(
+                        r.status
+                      )}`}
+                    >
+                      {r.status}
+                    </span>
                     <span className="text-lg font-semibold">{r.title}</span>
                   </div>
                   <div className="text-sm text-gray-700">部署: {r.department}</div>

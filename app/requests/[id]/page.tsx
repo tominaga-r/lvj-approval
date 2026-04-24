@@ -4,6 +4,7 @@ import { requireProfile } from '@/lib/authz'
 import { RequestActionsPanel } from './RequestActionsPanel'
 import EditDraftForm from './EditDraftForm'
 import { formatAmount } from '@/lib/format'
+import { getStatusChipClass } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -127,7 +128,16 @@ export default async function RequestDetailPage({ params }: Props) {
           {requesterProfile?.department ? ` / ${requesterProfile.department}` : ''}
         </div>
         <div>部署: {reqRow.department}</div>
-        <div>ステータス: {reqRow.status}</div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">ステータス:</span>
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusChipClass(
+              reqRow.status
+            )}`}
+          >
+            {reqRow.status}
+          </span>
+        </div>
         <div className="font-semibold">{reqRow.title}</div>
         <div className="whitespace-pre-wrap">{reqRow.description}</div>
         <div>金額: {formatAmount(reqRow.amount)}</div>

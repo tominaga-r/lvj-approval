@@ -287,21 +287,30 @@ export default async function ApprovalsPage({ searchParams }: Props) {
       <div className="space-y-2">
         {filteredRows.map((r) => (
           <Link key={r.id} href={`/requests/${r.id}`} className="block card hover:bg-gray-50">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="space-y-2">
-                <div className="font-medium">{r.title}</div>
-                <div className="flex gap-2 flex-wrap text-xs text-gray-600">
-                  <span className="chip">{r.status}</span>
-                  <span className="chip">部署: {r.department}</span>
-                  <span className="chip">種別: {getTypeName(r)}</span>
-                  <span className="chip">金額: {formatAmount(r.amount)}</span>
-                  <span className="chip">希望日: {r.needed_by ?? '-'}</span>
-                  <span className="chip">コメント: {hasAnyComment(r) ? 'あり' : 'なし'}</span>
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="space-y-2 min-w-0">
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <span className="chip">{r.status}</span>
+                    <span className="text-lg font-semibold">{r.title}</span>
+                  </div>
+                  <div className="text-sm text-gray-700">部署: {r.department}</div>
+                </div>
+
+                <div className="text-right min-w-[140px]">
+                  <div className="text-xs text-gray-500">金額</div>
+                  <div className="text-lg font-semibold">{formatAmount(r.amount)}</div>
                 </div>
               </div>
 
-              <div className="text-xs text-gray-500 min-w-[160px] text-right">
-                {new Date(r.created_at).toLocaleString('ja-JP')}
+              <div className="flex gap-2 flex-wrap text-xs text-gray-600">
+                <span className="chip">種別: {getTypeName(r)}</span>
+                <span className="chip">希望日: {r.needed_by ?? '-'}</span>
+                <span className="chip">コメント: {hasAnyComment(r) ? 'あり' : 'なし'}</span>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                作成: {new Date(r.created_at).toLocaleString('ja-JP')}
               </div>
             </div>
           </Link>

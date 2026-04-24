@@ -136,17 +136,17 @@ export default async function RequestDetailPage({ params }: Props) {
       </div>
 
       {canEditDraft && (
-      <EditDraftForm
-        requestId={reqRow.id}
-        initial={{
-          type_id: reqRow.type_id,
-          title: reqRow.title,
-          description: reqRow.description,
-          amount: reqRow.amount != null ? String(reqRow.amount) : '',
-          needed_by: reqRow.needed_by ?? '',
-        }}
-        types={typesForEdit}
-      />
+        <EditDraftForm
+          requestId={reqRow.id}
+          types={typesForEdit}
+          initial={{
+            type_id: reqRow.type_id,
+            title: reqRow.title ?? '',
+            description: reqRow.description ?? '',
+            amount: reqRow.amount != null ? String(reqRow.amount) : '',
+            needed_by: reqRow.needed_by ? String(reqRow.needed_by) : '',
+          }}
+        />
       )}
 
       <RequestActionsPanel

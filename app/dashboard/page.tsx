@@ -46,9 +46,13 @@ function StatCard(props: {
   return (
     <div className="card space-y-2">
       <div className="text-sm text-gray-500">{title}</div>
-      <div className="text-2xl font-bold">{count}件</div>
-      <div className="text-sm text-gray-700">金額合計: {formatAmount(totalAmount)}</div>
-      <div className="text-sm text-gray-700">承認済み金額: {formatAmount(approvedAmount)}</div>
+      <div className="text-2xl sm:text-3xl font-bold">{count}件</div>
+      <div className="text-sm text-gray-700 break-words">
+        金額合計: {formatAmount(totalAmount)}
+      </div>
+      <div className="text-sm text-gray-700 break-words">
+        承認済み金額: {formatAmount(approvedAmount)}
+      </div>
     </div>
   )
 }
@@ -85,12 +89,14 @@ export default async function DashboardPage() {
   const approvedCount = countByStatus(allRows, 'APPROVED')
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold">申請・承認ダッシュボード</h1>
-        <div className="text-sm text-gray-700">名前: {profile.name}</div>
-        <div className="text-sm text-gray-700">ロール: {profile.role}</div>
-        <div className="text-sm text-gray-700">部署: {profile.department}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-700">
+          <div className="card">名前: {profile.name}</div>
+          <div className="card">ロール: {profile.role}</div>
+          <div className="card">部署: {profile.department}</div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -114,42 +120,42 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card space-y-1">
           <div className="text-sm text-gray-500">承認待ち</div>
-          <div className="text-2xl font-bold">{pendingCount}件</div>
+          <div className="text-2xl sm:text-3xl font-bold">{pendingCount}件</div>
         </div>
         <div className="card space-y-1">
           <div className="text-sm text-gray-500">差し戻し</div>
-          <div className="text-2xl font-bold">{returnedCount}件</div>
+          <div className="text-2xl sm:text-3xl font-bold">{returnedCount}件</div>
         </div>
         <div className="card space-y-1">
           <div className="text-sm text-gray-500">承認済み</div>
-          <div className="text-2xl font-bold">{approvedCount}件</div>
+          <div className="text-2xl sm:text-3xl font-bold">{approvedCount}件</div>
         </div>
       </div>
 
       <div className="card space-y-3">
         <div className="font-semibold">メニュー</div>
-        <div className="flex gap-3 flex-wrap">
-          <Link href="/requests" className="btn btn-secondary">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <Link href="/requests" className="btn btn-secondary justify-center">
             申請一覧
           </Link>
 
           {canCreate && (
-            <Link href="/requests/new" className="btn btn-secondary">
+            <Link href="/requests/new" className="btn btn-secondary justify-center">
               新規申請（下書き）
             </Link>
           )}
 
           {(isApprover || isAdmin) && (
-            <Link href="/approvals" className="btn btn-secondary">
+            <Link href="/approvals" className="btn btn-secondary justify-center">
               承認待ち
             </Link>
           )}
 
           {isAdmin && (
-            <Link href="/admin" className="btn btn-secondary">
+            <Link href="/admin" className="btn btn-secondary justify-center">
               管理
             </Link>
           )}

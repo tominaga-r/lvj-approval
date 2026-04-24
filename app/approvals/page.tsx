@@ -85,29 +85,12 @@ export default async function ApprovalsPage({ searchParams }: Props) {
       'id, title, status, department, created_at, amount, needed_by, approver_id, request_types(name), request_actions(comment)'
     )
 
-  if (status) {
-    query = query.eq('status', status)
-  }
-
-  if (q) {
-    query = query.ilike('title', `%${q}%`)
-  }
-
-  if (isAdmin && department) {
-    query = query.eq('department', department)
-  }
-
-  if (from) {
-    query = query.gte('created_at', toDateStart(from))
-  }
-
-  if (to) {
-    query = query.lt('created_at', toNextDateStart(to))
-  }
-
-  if (mine) {
-    query = query.eq('approver_id', profile.id)
-  }
+  if (status) query = query.eq('status', status)
+  if (q) query = query.ilike('title', `%${q}%`)
+  if (isAdmin && department) query = query.eq('department', department)
+  if (from) query = query.gte('created_at', toDateStart(from))
+  if (to) query = query.lt('created_at', toNextDateStart(to))
+  if (mine) query = query.eq('approver_id', profile.id)
 
   query = query.order('created_at', { ascending: sort === 'oldest' })
 
@@ -138,7 +121,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-4">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold">{heading}</h1>
         <Link href="/dashboard" className="underline text-sm">
@@ -146,7 +129,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
         </Link>
       </div>
 
-      <form className="card grid grid-cols-1 sm:grid-cols-6 gap-3">
+      <form className="card grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
         <div className="sm:col-span-2">
           <label htmlFor="approvals-q" className="label">
             キーワード
@@ -228,8 +211,8 @@ export default async function ApprovalsPage({ searchParams }: Props) {
           </select>
         </div>
 
-        <div className="sm:col-span-5">
-          <label htmlFor="approvals-mine" className="inline-flex items-center gap-2 text-sm pt-8">
+        <div className="sm:col-span-2 xl:col-span-2 flex items-end">
+          <label htmlFor="approvals-mine" className="inline-flex items-center gap-2 text-sm">
             <input
               id="approvals-mine"
               name="mine"
@@ -241,17 +224,17 @@ export default async function ApprovalsPage({ searchParams }: Props) {
           </label>
         </div>
 
-        <div className="sm:col-span-6 flex gap-2">
-          <button type="submit" className="btn btn-primary">
+        <div className="sm:col-span-2 xl:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button type="submit" className="btn btn-primary justify-center">
             絞り込む
           </button>
-          <Link href="/approvals" className="btn btn-secondary">
+          <Link href="/approvals" className="btn btn-secondary justify-center">
             リセット
           </Link>
         </div>
       </form>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="card space-y-1">
           <div className="text-xs text-gray-500">表示件数</div>
           <div className="text-2xl font-bold">{summary.total}</div>
@@ -285,12 +268,12 @@ export default async function ApprovalsPage({ searchParams }: Props) {
         現在の絞り込み結果に対する件数を表示しています。
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {filteredRows.map((r) => (
           <Link key={r.id} href={`/requests/${r.id}`} className="block card hover:bg-gray-50">
             <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="space-y-2 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0 space-y-2">
                   <div className="flex gap-2 flex-wrap items-center">
                     <span
                       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusChipClass(
@@ -299,21 +282,25 @@ export default async function ApprovalsPage({ searchParams }: Props) {
                     >
                       {r.status}
                     </span>
-                    <span className="text-lg font-semibold">{r.title}</span>
                   </div>
-                  <div className="text-sm text-gray-700">部署: {r.department}</div>
+                  <div className="text-base sm:text-lg font-semibold break-words">
+                    {r.title}
+                  </div>
+                  <div className="text-sm text-gray-700 break-words">部署: {r.department}</div>
                 </div>
 
-                <div className="text-right min-w-[140px]">
+                <div className="sm:text-right min-w-0 sm:min-w-[140px]">
                   <div className="text-xs text-gray-500">金額</div>
-                  <div className="text-lg font-semibold">{formatAmount(r.amount)}</div>
+                  <div className="text-lg font-semibold break-words">
+                    {formatAmount(r.amount)}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-wrap text-xs text-gray-600">
-                <span className="chip">種別: {getTypeName(r)}</span>
-                <span className="chip">希望日: {r.needed_by ?? '-'}</span>
-                <span className="chip">コメント: {hasAnyComment(r) ? 'あり' : 'なし'}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
+                <div className="chip break-words">種別: {getTypeName(r)}</div>
+                <div className="chip break-words">希望日: {r.needed_by ?? '-'}</div>
+                <div className="chip break-words">コメント: {hasAnyComment(r) ? 'あり' : 'なし'}</div>
               </div>
 
               <div className="text-xs text-gray-500">

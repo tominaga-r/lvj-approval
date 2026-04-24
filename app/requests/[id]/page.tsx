@@ -45,7 +45,7 @@ export default async function RequestDetailPage({ params }: Props) {
 
   if (reqErr || !reqRow) {
     return (
-      <div className="max-w-3xl mx-auto p-6">
+      <div className="max-w-3xl mx-auto p-4 sm:p-6">
         <div className="text-red-600 mb-4">
           申請が見つからない/権限がありません: {reqErr?.message ?? 'unknown'}
         </div>
@@ -75,7 +75,11 @@ export default async function RequestDetailPage({ params }: Props) {
     .order('created_at', { ascending: false })
 
   const actorIds = Array.from(
-    new Set((actions ?? []).map((a) => a.actor_id).filter((v): v is string => typeof v === 'string' && v.length > 0))
+    new Set(
+      (actions ?? [])
+        .map((a) => a.actor_id)
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+    )
   )
 
   let actorNameMap: Record<string, { name: string; role: string; department: string }> = {}
@@ -112,7 +116,7 @@ export default async function RequestDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
       <h1 className="text-xl font-bold">申請詳細</h1>
 
       <div className="text-sm">
@@ -121,28 +125,47 @@ export default async function RequestDetailPage({ params }: Props) {
         </Link>
       </div>
 
-      <div className="card space-y-2">
-        <div>種別: {typeRow?.name ?? `type_id=${reqRow.type_id}`}</div>
-        <div>
-          申請者: {requesterProfile?.name ?? reqRow.requester_id}
-          {requesterProfile?.department ? ` / ${requesterProfile.department}` : ''}
+      <div className="card space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+          <div className="break-words">種別: {typeRow?.name ?? `type_id=${reqRow.type_id}`}</div>
+          <div className="break-words">
+            申請者: {requesterProfile?.name ?? reqRow.requester_id}
+            {requesterProfile?.department ? ` / ${requesterProfile.department}` : ''}
+          </div>
+          <div className="break-words">部署: {reqRow.department}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-600">ステータス:</span>
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusChipClass(
+                reqRow.status
+              )}`}
+            >
+              {reqRow.status}
+            </span>
+          </div>
         </div>
-        <div>部署: {reqRow.department}</div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">ステータス:</span>
-          <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusChipClass(
-              reqRow.status
-            )}`}
-          >
-            {reqRow.status}
-          </span>
+
+        <div className="space-y-2">
+          <div className="text-lg font-semibold break-words">{reqRow.title}</div>
+          <div className="whitespace-pre-wrap break-words">{reqRow.description}</div>
         </div>
-        <div className="font-semibold">{reqRow.title}</div>
-        <div className="whitespace-pre-wrap">{reqRow.description}</div>
-        <div>金額: {formatAmount(reqRow.amount)}</div>
-        <div>希望日: {reqRow.needed_by ?? '-'}</div>
-        <div>更新: {new Date(reqRow.updated_at).toLocaleString('ja-JP')}</div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+          <div className="card">
+            <div className="text-xs text-gray-500">金額</div>
+            <div className="font-semibold break-words">{formatAmount(reqRow.amount)}</div>
+          </div>
+          <div className="card">
+            <div className="text-xs text-gray-500">希望日</div>
+            <div className="font-semibold break-words">{reqRow.needed_by ?? '-'}</div>
+          </div>
+          <div className="card">
+            <div className="text-xs text-gray-500">更新</div>
+            <div className="font-semibold break-words">
+              {new Date(reqRow.updated_at).toLocaleString('ja-JP')}
+            </div>
+          </div>
+        </div>
       </div>
 
       {canEditDraft && (
@@ -180,13 +203,13 @@ export default async function RequestDetailPage({ params }: Props) {
             : a.actor_id
 
           return (
-            <div key={a.id} className="rounded border p-3 bg-white space-y-1">
-              <div className="text-sm font-medium">
+            <div key={a.id} className="rounded border p-3 bg-white space-y-2">
+              <div className="text-sm font-medium break-words">
                 {actionLabel(a.action)} / {new Date(a.created_at).toLocaleString('ja-JP')}
               </div>
-              <div className="text-xs text-gray-600">実行者: {actorText}</div>
+              <div className="text-xs text-gray-600 break-words">実行者: {actorText}</div>
               {a.comment && (
-                <div className="text-sm whitespace-pre-wrap rounded bg-gray-50 p-2">
+                <div className="text-sm whitespace-pre-wrap break-words rounded bg-gray-50 p-2">
                   {a.comment}
                 </div>
               )}

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
 import { canCreateRequest } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
+import { getStatusChipClass } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,25 +25,6 @@ type Status =
   | 'APPROVED'
   | 'REJECTED'
   | 'CANCELLED'
-
-function statusChipClass(status: string) {
-  switch (status) {
-    case 'DRAFT':
-      return 'bg-gray-100 text-gray-700 border-gray-200'
-    case 'SUBMITTED':
-      return 'bg-blue-50 text-blue-700 border-blue-200'
-    case 'RETURNED':
-      return 'bg-orange-50 text-orange-700 border-orange-200'
-    case 'APPROVED':
-      return 'bg-green-50 text-green-700 border-green-200'
-    case 'REJECTED':
-      return 'bg-red-50 text-red-700 border-red-200'
-    case 'CANCELLED':
-      return 'bg-yellow-50 text-yellow-700 border-yellow-200'
-    default:
-      return 'bg-gray-100 text-gray-700 border-gray-200'
-  }
-}
 
 function getTypeName(row: {
   request_types?: { name?: string } | { name?: string }[] | null
@@ -93,13 +75,8 @@ export default async function RequestsPage({ searchParams }: Props) {
       'id, title, status, created_at, updated_at, amount, needed_by, type_id, request_types(name)'
     )
 
-  if (q) {
-    query = query.ilike('title', `%${q}%`)
-  }
-
-  if (status) {
-    query = query.eq('status', status as Status)
-  }
+  if (q) query = query.ilike('title', `%${q}%`)
+  if (status) query = query.eq('status', status as Status)
 
   if (typeId) {
     const parsedTypeId = Number(typeId)
@@ -108,13 +85,8 @@ export default async function RequestsPage({ searchParams }: Props) {
     }
   }
 
-  if (from) {
-    query = query.gte('created_at', toDateStart(from))
-  }
-
-  if (to) {
-    query = query.lt('created_at', toNextDateStart(to))
-  }
+  if (from) query = query.gte('created_at', toDateStart(from))
+  if (to) query = query.lt('created_at', toNextDateStart(to))
 
   query = query.order('created_at', { ascending: sort === 'oldest' })
 
@@ -136,11 +108,11 @@ export default async function RequestsPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-4">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold">申請一覧</h1>
         {canCreate && (
-          <Link className="btn btn-secondary" href="/requests/new">
+          <Link className="btn btn-secondary w-full sm:w-auto justify-center" href="/requests/new">
             新規申請
           </Link>
         )}
@@ -150,8 +122,8 @@ export default async function RequestsPage({ searchParams }: Props) {
         あなたの部署: {profile.department} / ロール: {profile.role}
       </div>
 
-      <form className="card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-        <div className="lg:col-span-2">
+      <form className="card grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3">
+        <div className="xl:col-span-2">
           <label htmlFor="requests-q" className="label">
             キーワード
           </label>
@@ -217,17 +189,17 @@ export default async function RequestsPage({ searchParams }: Props) {
           </select>
         </div>
 
-        <div className="sm:col-span-2 lg:col-span-6 flex gap-2">
-          <button type="submit" className="btn btn-primary">
+        <div className="sm:col-span-2 xl:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button type="submit" className="btn btn-primary justify-center">
             絞り込む
           </button>
-          <Link href="/requests" className="btn btn-secondary">
+          <Link href="/requests" className="btn btn-secondary justify-center">
             リセット
           </Link>
         </div>
       </form>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
         <div className="card space-y-1">
           <div className="text-xs text-gray-500">表示件数</div>
           <div className="text-2xl font-bold">{summary.total}</div>
@@ -258,38 +230,46 @@ export default async function RequestsPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {list.map((r) => (
           <Link key={r.id} href={`/requests/${r.id}`} className="block card hover:bg-gray-50">
             <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="space-y-2 min-w-0">
-                  <div className="flex gap-2 flex-wrap items-center">
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${statusChipClass(
-                        r.status
-                      )}`}
-                    >
-                      {r.status}
-                    </span>
-                    <span className="text-lg font-semibold">{r.title}</span>
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusChipClass(
+                          r.status
+                        )}`}
+                      >
+                        {r.status}
+                      </span>
+                    </div>
+                    <div className="text-base sm:text-lg font-semibold break-words">
+                      {r.title}
+                    </div>
+                  </div>
+
+                  <div className="sm:text-right min-w-0 sm:min-w-[140px]">
+                    <div className="text-xs text-gray-500">金額</div>
+                    <div className="text-lg font-semibold break-words">
+                      {formatAmount(r.amount)}
+                    </div>
                   </div>
                 </div>
-
-                <div className="text-right min-w-[140px]">
-                  <div className="text-xs text-gray-500">金額</div>
-                  <div className="text-lg font-semibold">{formatAmount(r.amount)}</div>
-                </div>
               </div>
 
-              <div className="flex gap-2 flex-wrap text-xs text-gray-600">
-                <span className="chip">種別: {getTypeName(r)}</span>
-                <span className="chip">希望日: {r.needed_by ?? '-'}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
+                <div className="chip break-words">種別: {getTypeName(r)}</div>
+                <div className="chip break-words">希望日: {r.needed_by ?? '-'}</div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 flex-wrap text-xs text-gray-500">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-gray-500">
                 <div>作成: {new Date(r.created_at).toLocaleString('ja-JP')}</div>
-                <div>更新: {new Date(r.updated_at).toLocaleString('ja-JP')}</div>
+                <div className="sm:text-right">
+                  更新: {new Date(r.updated_at).toLocaleString('ja-JP')}
+                </div>
               </div>
             </div>
           </Link>

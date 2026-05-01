@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { requireProfile } from '@/lib/authz'
 import { canCreateRequest } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
-import { getStatusChipClass } from '@/lib/status'
+import { getStatusChipClass, getStatusLabel } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -142,12 +142,12 @@ export default async function RequestsPage({ searchParams }: Props) {
           </label>
           <select id="requests-status" name="status" className="input" defaultValue={status}>
             <option value="">すべて</option>
-            <option value="DRAFT">DRAFT</option>
-            <option value="SUBMITTED">SUBMITTED</option>
-            <option value="RETURNED">RETURNED</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="CANCELLED">CANCELLED</option>
+            <option value="DRAFT">下書き</option>
+            <option value="SUBMITTED">承認待ち</option>
+            <option value="RETURNED">差し戻し</option>
+            <option value="APPROVED">承認済み</option>
+            <option value="REJECTED">却下</option>
+            <option value="CANCELLED">取消済み</option>
           </select>
         </div>
 
@@ -205,27 +205,27 @@ export default async function RequestsPage({ searchParams }: Props) {
           <div className="text-2xl font-bold">{summary.total}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">DRAFT</div>
+          <div className="text-xs text-gray-500">下書き</div>
           <div className="text-2xl font-bold">{summary.draft}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">SUBMITTED</div>
+          <div className="text-xs text-gray-500">承認待ち</div>
           <div className="text-2xl font-bold">{summary.submitted}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">RETURNED</div>
+          <div className="text-xs text-gray-500">差し戻し</div>
           <div className="text-2xl font-bold">{summary.returned}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">APPROVED</div>
+          <div className="text-xs text-gray-500">承認済み</div>
           <div className="text-2xl font-bold">{summary.approved}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">REJECTED</div>
+          <div className="text-xs text-gray-500">却下</div>
           <div className="text-2xl font-bold">{summary.rejected}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">CANCELLED</div>
+          <div className="text-xs text-gray-500">取消済み</div>
           <div className="text-2xl font-bold">{summary.cancelled}</div>
         </div>
       </div>
@@ -243,7 +243,7 @@ export default async function RequestsPage({ searchParams }: Props) {
                           r.status
                         )}`}
                       >
-                        {r.status}
+                        {getStatusLabel(r.status)}
                       </span>
                     </div>
                     <div className="text-base sm:text-lg font-semibold break-words">

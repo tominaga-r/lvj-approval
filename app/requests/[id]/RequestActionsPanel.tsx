@@ -51,7 +51,7 @@ export function RequestActionsPanel(props: {
     if (status === 'DRAFT') return '下書き：申請者は編集・提出ができます。'
     if (status === 'RETURNED') return '差し戻し：修正後に再提出できます。'
     if (status === 'SUBMITTED') {
-      return '提出済み：承認者が承認・差し戻し・却下できます。差し戻し・却下にはコメントが必須です。'
+      return '承認待ち：承認者が承認・差し戻し・却下できます。差し戻し・却下にはコメントが必須です。'
     }
     return 'この申請は確定しています。'
   }, [status])
@@ -84,10 +84,9 @@ export function RequestActionsPanel(props: {
         <label htmlFor="request-action-comment" className="label">
           コメント（差し戻し・却下は必須）
         </label>
-        <input
+        <textarea
           id="request-action-comment"
-          name="comment"
-          className="input"
+          className="input min-h-24"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="承認理由/差し戻し理由/却下理由/補足など"
@@ -122,7 +121,7 @@ export function RequestActionsPanel(props: {
             onClick={() =>
               setDialog({
                 title: '取消しますか？',
-                description: '取消後はキャンセル扱いになります。',
+                description: '取消後は取消済みになります。',
                 destructive: true,
                 run: () => cancelRequest(requestId, trimmedComment || undefined),
               })
@@ -138,6 +137,7 @@ export function RequestActionsPanel(props: {
             disabled={pending}
             onClick={() => {
               if (!ensureComment('差し戻しにはコメントが必須です')) return
+
               setDialog({
                 title: '差し戻しますか？',
                 description: '差し戻すと申請者が修正・再提出できる状態になります。',
@@ -157,7 +157,7 @@ export function RequestActionsPanel(props: {
               onClick={() =>
                 setDialog({
                   title: '承認しますか？',
-                  description: '承認すると APPROVED になります。',
+                  description: '承認すると承認済みになります。',
                   run: () => approveRequest(requestId, trimmedComment || undefined),
                 })
               }
@@ -170,9 +170,10 @@ export function RequestActionsPanel(props: {
               disabled={pending}
               onClick={() => {
                 if (!ensureComment('却下にはコメントが必須です')) return
+
                 setDialog({
                   title: '却下しますか？',
-                  description: '却下すると REJECTED になります。',
+                  description: '却下すると却下になります。',
                   destructive: true,
                   run: () => rejectRequest(requestId, trimmedComment),
                 })

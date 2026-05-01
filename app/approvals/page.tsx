@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { requireRole } from '@/lib/authz'
 import { formatAmount } from '@/lib/format'
-import { getStatusChipClass } from '@/lib/status'
+import { getStatusChipClass, getStatusLabel } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,11 +43,9 @@ function toNextDateStart(value: string) {
   return `${y}-${m}-${d}T00:00:00.000+09:00`
 }
 
-function hasAnyComment(
-  row: {
-    request_actions?: { comment?: string | null }[] | null
-  }
-) {
+function hasAnyComment(row: {
+  request_actions?: { comment?: string | null }[] | null
+}) {
   return (row.request_actions ?? []).some((a) => {
     const comment = a.comment?.trim() ?? ''
     return comment.length > 0
@@ -77,7 +75,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
       ? isAdmin
         ? '承認待ち（全件）'
         : `承認待ち（${profile.department}）`
-      : `承認一覧（${status}）`
+      : `承認一覧（${getStatusLabel(status)}）`
 
   let query = supabase
     .from('requests')
@@ -148,11 +146,11 @@ export default async function ApprovalsPage({ searchParams }: Props) {
             ステータス
           </label>
           <select id="approvals-status" name="status" className="input" defaultValue={status}>
-            <option value="SUBMITTED">SUBMITTED</option>
-            <option value="RETURNED">RETURNED</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="CANCELLED">CANCELLED</option>
+            <option value="SUBMITTED">承認待ち</option>
+            <option value="RETURNED">差し戻し</option>
+            <option value="APPROVED">承認済み</option>
+            <option value="REJECTED">却下</option>
+            <option value="CANCELLED">取消済み</option>
           </select>
         </div>
 
@@ -240,23 +238,23 @@ export default async function ApprovalsPage({ searchParams }: Props) {
           <div className="text-2xl font-bold">{summary.total}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">SUBMITTED</div>
+          <div className="text-xs text-gray-500">承認待ち</div>
           <div className="text-2xl font-bold">{summary.submitted}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">RETURNED</div>
+          <div className="text-xs text-gray-500">差し戻し</div>
           <div className="text-2xl font-bold">{summary.returned}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">APPROVED</div>
+          <div className="text-xs text-gray-500">承認済み</div>
           <div className="text-2xl font-bold">{summary.approved}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">REJECTED</div>
+          <div className="text-xs text-gray-500">却下</div>
           <div className="text-2xl font-bold">{summary.rejected}</div>
         </div>
         <div className="card space-y-1">
-          <div className="text-xs text-gray-500">CANCELLED</div>
+          <div className="text-xs text-gray-500">取消済み</div>
           <div className="text-2xl font-bold">{summary.cancelled}</div>
         </div>
       </div>
@@ -280,7 +278,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
                         r.status
                       )}`}
                     >
-                      {r.status}
+                      {getStatusLabel(r.status)}
                     </span>
                   </div>
                   <div className="text-base sm:text-lg font-semibold break-words">
@@ -300,7 +298,9 @@ export default async function ApprovalsPage({ searchParams }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
                 <div className="chip break-words">種別: {getTypeName(r)}</div>
                 <div className="chip break-words">希望日: {r.needed_by ?? '-'}</div>
-                <div className="chip break-words">コメント: {hasAnyComment(r) ? 'あり' : 'なし'}</div>
+                <div className="chip break-words">
+                  コメント: {hasAnyComment(r) ? 'あり' : 'なし'}
+                </div>
               </div>
 
               <div className="text-xs text-gray-500">

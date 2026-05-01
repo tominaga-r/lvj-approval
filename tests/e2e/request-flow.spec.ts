@@ -29,7 +29,7 @@ test.describe('request flow', () => {
     await page.getByRole('button', { name: '提出' }).click()
     await page.getByRole('button', { name: /実行/i }).click()
     await expect(page.getByText(/操作が完了しました/)).toBeVisible()
-    await expect(page.getByText('SUBMITTED')).toBeVisible()
+    await expect(page.getByText('承認待ち', { exact: true })).toBeVisible()
 
     await ctx.close()
   })
@@ -54,7 +54,7 @@ test.describe('request flow', () => {
     await page.getByRole('button', { name: '差し戻し' }).click()
     await page.getByRole('button', { name: /実行/i }).click()
     await expect(page.getByText(/操作が完了しました/)).toBeVisible()
-    await expect(page.getByText('RETURNED')).toBeVisible()
+    await expect(page.getByText('差し戻し', { exact: true })).toBeVisible()
 
     await ctx.close()
   })
@@ -81,7 +81,7 @@ test.describe('request flow', () => {
     await page.getByRole('button', { name: '再提出' }).click()
     await page.getByRole('button', { name: /実行/i }).click()
     await expect(page.getByText(/操作が完了しました/)).toBeVisible()
-    await expect(page.getByText('SUBMITTED')).toBeVisible()
+    await expect(page.getByText('承認待ち', { exact: true })).toBeVisible()
 
     await ctx.close()
   })
@@ -103,7 +103,7 @@ test.describe('request flow', () => {
     await page.getByRole('button', { name: '承認' }).click()
     await page.getByRole('button', { name: /実行/i }).click()
     await expect(page.getByText(/操作が完了しました/)).toBeVisible()
-    await expect(page.getByText('APPROVED')).toBeVisible()
+    await expect(page.getByText('承認済み', { exact: true })).toBeVisible()
 
     await ctx.close()
   })

@@ -4,7 +4,7 @@ import { requireProfile } from '@/lib/authz'
 import { RequestActionsPanel } from './RequestActionsPanel'
 import EditDraftForm from './EditDraftForm'
 import { formatAmount } from '@/lib/format'
-import { getStatusChipClass } from '@/lib/status'
+import { getStatusChipClass, getStatusLabel } from '@/lib/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,7 +140,7 @@ export default async function RequestDetailPage({ params }: Props) {
                 reqRow.status
               )}`}
             >
-              {reqRow.status}
+              {getStatusLabel(reqRow.status)}
             </span>
           </div>
         </div>

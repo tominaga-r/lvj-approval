@@ -1,4 +1,5 @@
 // lib/status.ts
+
 export type RequestStatus =
   | 'DRAFT'
   | 'SUBMITTED'
@@ -6,6 +7,25 @@ export type RequestStatus =
   | 'APPROVED'
   | 'REJECTED'
   | 'CANCELLED'
+
+export function getStatusLabel(status: string) {
+  switch (status) {
+    case 'DRAFT':
+      return '下書き'
+    case 'SUBMITTED':
+      return '承認待ち'
+    case 'RETURNED':
+      return '差し戻し'
+    case 'APPROVED':
+      return '承認済み'
+    case 'REJECTED':
+      return '却下'
+    case 'CANCELLED':
+      return '取消済み'
+    default:
+      return status
+  }
+}
 
 export function getStatusChipClass(status: string) {
   switch (status) {

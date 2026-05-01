@@ -2,8 +2,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { getBrowserNextPath } from '@/lib/authFlow'
 import { normalizeErrorMessage } from '@/lib/error'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'signin' | 'forgot'>('signin')
@@ -44,7 +45,8 @@ export default function LoginPage() {
   }, [forgotCooldownUntil, now])
 
   const handleSignin = async () => {
-    const e = email.trim()
+    const e = email.trim().toLowerCase()
+
     setErrorMessage(null)
     setInfoMessage(null)
 
@@ -54,18 +56,19 @@ export default function LoginPage() {
     }
 
     setLoading(true)
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: e,
         password,
       })
+
       if (error) {
         setErrorMessage(`ログイン失敗: ${error.message}`)
         return
       }
 
-      // Header が server component のため、確実に反映させる目的でフルリロード
-      window.location.href = '/dashboard'
+      window.location.href = getBrowserNextPath('/dashboard')
     } catch (e: unknown) {
       setErrorMessage(normalizeErrorMessage(e, 'ログインに失敗しました'))
     } finally {
@@ -77,6 +80,7 @@ export default function LoginPage() {
     if (loading || cooldownActive) return
 
     const target = email.trim().toLowerCase()
+
     setErrorMessage(null)
     setInfoMessage(null)
 
@@ -86,6 +90,7 @@ export default function LoginPage() {
     }
 
     setLoading(true)
+
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
@@ -125,10 +130,11 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">ログイン</h1>
+      <h1 className="text-xl font-bold">ログイン</h1>
 
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={() => {
             setMode('signin')
             setErrorMessage(null)
@@ -138,7 +144,9 @@ export default function LoginPage() {
         >
           ログイン
         </button>
+
         <button
+          type="button"
           onClick={() => {
             setMode('forgot')
             setErrorMessage(null)
@@ -150,74 +158,71 @@ export default function LoginPage() {
         </button>
       </div>
 
-      <div className="card space-y-3">
-        {errorMessage && (
-          <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-line">
-            {errorMessage}
-          </div>
-        )}
-
-        {infoMessage && (
-          <div className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700 whitespace-pre-line">
-            {infoMessage}
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="email" className="label">
-            メールアドレス
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            className="input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="user@example.com"
-            disabled={loading}
-          />
+      {errorMessage && (
+        <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700 whitespace-pre-wrap">
+          {errorMessage}
         </div>
+      )}
 
-        {mode === 'signin' && (
-          <div>
-            <label htmlFor="password" className="label">
-              パスワード
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-        )}
+      {infoMessage && (
+        <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-700 whitespace-pre-wrap">
+          {infoMessage}
+        </div>
+      )}
 
-        {mode === 'signin' ? (
-          <button className="btn btn-primary" onClick={handleSignin} disabled={loading}>
-            {loading ? '処理中...' : 'ログイン'}
-          </button>
-        ) : (
-          <button
-            className="btn btn-primary"
-            onClick={handleForgot}
-            disabled={loading || cooldownActive}
-          >
-            {loading
-              ? '送信中...'
-              : cooldownActive
-                ? `再送まで ${cooldownSec} 秒`
-                : '再設定メールを送る'}
-          </button>
-        )}
+      <div className="space-y-2">
+        <label htmlFor="login-email" className="label">
+          メールアドレス
+        </label>
+        <input
+          id="login-email"
+          className="input"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="user@example.com"
+          disabled={loading}
+          autoComplete="email"
+        />
       </div>
 
-      <p className="text-xs text-gray-500 leading-relaxed">
+      {mode === 'signin' && (
+        <div className="space-y-2">
+          <label htmlFor="login-password" className="label">
+            パスワード
+          </label>
+          <input
+            id="login-password"
+            className="input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            autoComplete="current-password"
+          />
+        </div>
+      )}
+
+      {mode === 'signin' ? (
+        <button
+          type="button"
+          className="btn btn-primary w-full justify-center"
+          onClick={handleSignin}
+          disabled={loading}
+        >
+          {loading ? '処理中...' : 'ログイン'}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-primary w-full justify-center"
+          onClick={handleForgot}
+          disabled={loading || cooldownActive}
+        >
+          {loading ? '送信中...' : cooldownActive ? `再送まで ${cooldownSec} 秒` : '再設定メールを送る'}
+        </button>
+      )}
+
+      <p className="text-xs text-gray-500">
         ※ 研修用のため新規登録UIは省略しています。テストユーザーでログインしてください。
       </p>
     </div>

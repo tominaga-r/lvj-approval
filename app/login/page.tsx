@@ -19,6 +19,15 @@ export default function LoginPage() {
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+
+    if (params.get('error') === 'inactive') {
+      setErrorMessage('このアカウントは無効化されています。管理者に確認してください。')
+      void supabase.auth.signOut()
+    }
+  }, [])
+
+  useEffect(() => {
     if (!forgotCooldownUntil) return
 
     const timer = window.setInterval(() => {
@@ -30,6 +39,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!forgotCooldownUntil) return
+
     if (Date.now() >= forgotCooldownUntil) {
       setForgotCooldownUntil(null)
     }
@@ -41,6 +51,7 @@ export default function LoginPage() {
 
   const cooldownSec = useMemo(() => {
     if (!forgotCooldownUntil) return 0
+
     return Math.max(0, Math.ceil((forgotCooldownUntil - now) / 1000))
   }, [forgotCooldownUntil, now])
 

@@ -6,10 +6,8 @@ import { requireRole } from '@/lib/authz'
 import { writeAdminAuditLog } from '@/lib/adminAudit'
 import { createSupabaseAdminClient } from '@/lib/supabaseAdmin'
 import {
-  departmentSchema,
   inviteUserSchema,
   requestTypeNameSchema,
-  roleSchema,
   updateUserRoleDepartmentSchema,
 } from '@/lib/validation'
 
@@ -171,6 +169,68 @@ export async function updateUserRoleDepartment(
   revalidatePath('/requests')
 }
 
+export async function updateUserActive(userId: string, isActive: boolean) {
+  const { profile } = await requireRole(['ADMIN'])
+
+  if (!userId || typeof userId !== 'string') {
+    throw new Error('invalid user id')
+  }
+
+  if (typeof isActive !== 'boolean') {
+    throw new Error('invalid active flag')
+  }
+
+  if (userId === profile.id && !isActive) {
+    throw new Error('自分自身は無効化できません。')
+  }
+
+  const admin = createSupabaseAdminClient()
+
+  const { data: beforeRow, error: beforeError } = await admin
+    .from('profiles')
+    .select('id, name, role, department, is_active')
+    .eq('id', userId)
+    .single()
+
+  if (beforeError) throw new Error(beforeError.message)
+
+  const { data: afterRow, error } = await admin
+    .from('profiles')
+    .update({ is_active: isActive })
+    .eq('id', userId)
+    .select('id, name, role, department, is_active')
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  if (beforeRow.is_active !== afterRow.is_active) {
+    await writeAdminAuditLog({
+      actorId: profile.id,
+      action: 'UPDATE_USER_ACTIVE',
+      entityType: 'profiles',
+      entityId: userId,
+      targetUserId: userId,
+      beforeData: {
+        is_active: beforeRow.is_active,
+        name: beforeRow.name,
+        role: beforeRow.role,
+        department: beforeRow.department,
+      },
+      afterData: {
+        is_active: afterRow.is_active,
+        name: afterRow.name,
+        role: afterRow.role,
+        department: afterRow.department,
+      },
+    })
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/dashboard')
+  revalidatePath('/approvals')
+  revalidatePath('/requests')
+}
+
 export async function inviteUser(input: {
   email: string
   name: string
@@ -209,6 +269,7 @@ export async function inviteUser(input: {
       name: parsed.data.name,
       role: parsed.data.role,
       department: parsed.data.department,
+      is_active: true,
     },
     { onConflict: 'id' }
   )
@@ -226,6 +287,7 @@ export async function inviteUser(input: {
       name: parsed.data.name,
       role: parsed.data.role,
       department: parsed.data.department,
+      is_active: true,
     },
   })
 

@@ -14,8 +14,19 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient()
 
   const { data: auth } = await supabase.auth.getUser()
+
   if (!auth.user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('is_active')
+    .eq('id', auth.user.id)
+    .single()
+
+  if (profileError || !profile?.is_active) {
+    return NextResponse.json({ error: 'inactive user' }, { status: 403 })
   }
 
   const body = await req.json().catch(() => null)
@@ -29,6 +40,7 @@ export async function POST(req: Request) {
   }
 
   const { error } = await supabase.auth.updateUser({ email: parsed.data.newEmail })
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }

@@ -17,6 +17,7 @@ type UserRow = {
   name: string
   role: Role
   department: string
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -34,7 +35,7 @@ type AdminAuditLogRow = {
 }
 
 export default async function AdminPage() {
-  const { supabase } = await requireRole(['ADMIN'])
+  const { supabase, profile } = await requireRole(['ADMIN'])
 
   const { data: requestTypes, error: rtErr } = await supabase
     .from('request_types')
@@ -51,7 +52,7 @@ export default async function AdminPage() {
 
   const { data: users, error: uErr } = await supabase
     .from('profiles')
-    .select('id, name, role, department, created_at, updated_at')
+    .select('id, name, role, department, is_active, created_at, updated_at')
     .order('created_at', { ascending: true })
 
   if (uErr) {
@@ -122,6 +123,7 @@ export default async function AdminPage() {
         users={(users ?? []) as UserRow[]}
         auditLogs={(auditLogs ?? []) as AdminAuditLogRow[]}
         profileMap={profileMap}
+        currentUserId={profile.id}
       />
     </div>
   )

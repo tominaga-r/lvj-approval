@@ -15,7 +15,7 @@ export async function requireProfile() {
   const { supabase, user } = await requireUser()
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, name, role, department')
+    .select('id, name, role, department, is_active')
     .eq('id', user.id)
     .single()
 
@@ -24,11 +24,17 @@ export async function requireProfile() {
     throw new Error(error?.message ?? 'profile not found')
   }
 
+  if (!profile.is_active) {
+    redirect('/login?error=inactive')
+  }
+
   return { supabase, user, profile }
 }
 
 export async function requireRole(roles: Role[]) {
   const { supabase, user, profile } = await requireProfile()
+
   if (!roles.includes(profile.role as Role)) redirect('/dashboard')
+
   return { supabase, user, profile }
 }

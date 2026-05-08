@@ -11,6 +11,7 @@ import {
   deleteRequestType,
   inviteUser,
   renameRequestType,
+  updateUserActive,
   updateUserRoleDepartment,
 } from './actions'
 
@@ -21,6 +22,7 @@ type UserRow = {
   name: string
   role: Role
   department: string
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -59,6 +61,8 @@ function actionLabel(action: string) {
       return '権限変更'
     case 'UPDATE_USER_DEPARTMENT':
       return '部署変更'
+    case 'UPDATE_USER_ACTIVE':
+      return 'ユーザー有効状態変更'
     case 'CREATE_REQUEST_TYPE':
       return '申請種別追加'
     case 'RENAME_REQUEST_TYPE':
@@ -84,10 +88,7 @@ function summarizeData(data: Record<string, unknown> | null | undefined) {
     .join(' / ')
 }
 
-function targetLabel(
-  log: AdminAuditLogRow,
-  profileMap: ProfileMap
-) {
+function targetLabel(log: AdminAuditLogRow, profileMap: ProfileMap) {
   if (log.target_user_id) {
     const p = profileMap[log.target_user_id]
     return p ? `${p.name} (${p.role} / ${p.department})` : log.target_user_id
@@ -109,8 +110,9 @@ export default function AdminClient(props: {
   users: UserRow[]
   auditLogs: AdminAuditLogRow[]
   profileMap: ProfileMap
+  currentUserId: string
 }) {
-  const { requestTypes, users, auditLogs, profileMap } = props
+  const { requestTypes, users, auditLogs, profileMap, currentUserId } = props
   const { toast } = useToast()
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -458,7 +460,7 @@ export default function AdminClient(props: {
       <div className="card space-y-4">
         <div className="font-semibold">ユーザー権限・部署（profiles）</div>
         <div className="text-xs text-gray-600">
-          ※ role / department は ADMIN のみ変更できます。
+          ※ role / department / 有効状態は ADMIN のみ変更できます。
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
@@ -523,11 +525,34 @@ export default function AdminClient(props: {
 
             const roleId = `admin-user-role-${u.id}`
             const deptId = `admin-user-dept-${u.id}`
+            const isSelf = u.id === currentUserId
 
             return (
               <div key={u.id} className="rounded border p-3 bg-white space-y-2">
-                <div className="text-sm font-medium">{u.name}</div>
-                <div className="text-xs text-gray-500 break-all">id: {u.id}</div>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">{u.name}</div>
+                    <div className="text-xs text-gray-500 break-all">id: {u.id}</div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${
+                        u.is_active
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-zinc-100 text-zinc-700 border-zinc-300'
+                      }`}
+                    >
+                      {u.is_active ? '有効' : '無効'}
+                    </span>
+
+                    {isSelf && (
+                      <span className="text-xs text-gray-500">
+                        自分自身は無効化できません
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
                   <div>
@@ -572,7 +597,7 @@ export default function AdminClient(props: {
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       className="btn btn-primary"
                       disabled={pending || !changed}
@@ -584,11 +609,30 @@ export default function AdminClient(props: {
                     >
                       反映
                     </button>
+
+                    <button
+                      className={u.is_active ? 'btn btn-secondary' : 'btn btn-primary'}
+                      disabled={pending || isSelf}
+                      onClick={() =>
+                        setDialog({
+                          title: u.is_active
+                            ? 'このユーザーを無効化しますか？'
+                            : 'このユーザーを再有効化しますか？',
+                          description: u.is_active
+                            ? '無効化すると、このユーザーはアプリの保護画面を利用できなくなります。既存の申請・承認履歴は保持されます。'
+                            : '再有効化すると、このユーザーは再びアプリを利用できるようになります。',
+                          destructive: u.is_active,
+                          run: () => updateUserActive(u.id, !u.is_active),
+                        })
+                      }
+                    >
+                      {u.is_active ? '無効化' : '再有効化'}
+                    </button>
                   </div>
                 </div>
 
                 <div className="text-xs text-gray-500">
-                  現在: {u.role} / {u.department}
+                  現在: {u.role} / {u.department} / {u.is_active ? '有効' : '無効'}
                 </div>
               </div>
             )
@@ -605,7 +649,7 @@ export default function AdminClient(props: {
       <div className="card space-y-4">
         <div className="font-semibold">管理操作監査ログ（最新20件）</div>
         <div className="text-xs text-gray-600">
-          招待、権限変更、部署変更、申請種別の追加・変更・削除を記録します。
+          招待、権限変更、部署変更、有効状態変更、申請種別の追加・変更・削除を記録します。
         </div>
 
         <div className="space-y-2">
